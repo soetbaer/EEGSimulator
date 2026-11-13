@@ -148,7 +148,7 @@ Namespace UI
                     Case BlockKind.Subtitle
                         If y > pad Then y += CInt(8 * sc)
                         Dim h = Measure(g, b.Text, Theme.FontSmallBold, w)
-                        If draw Then TextRenderer.DrawText(g, b.Text, Theme.FontSmallBold, New Rectangle(pad, y + oy, w, h), Theme.Accent, Flags)
+                        If draw Then TextRenderer.DrawText(g, b.Text, Theme.FontSmallBold, New Rectangle(pad, y + oy, w, h), Theme.AccentDark, Flags)
                         y += h + CInt(12 * sc)
 
                     Case BlockKind.Heading
@@ -176,12 +176,12 @@ Namespace UI
                         y += h + CInt(6 * sc)
 
                     Case BlockKind.Tip, BlockKind.Warning, BlockKind.Good, BlockKind.TryIt
-                        Dim label As String, back As Color, acc As Color
+                        Dim label As String, back As Color, acc As Color, labelCol As Color
                         Select Case b.Kind
-                            Case BlockKind.Tip : label = "Merke" : back = Theme.TipBack : acc = Theme.TipAccent
-                            Case BlockKind.Warning : label = "Achtung" : back = Theme.WarnBack : acc = Theme.WarnAccent
-                            Case BlockKind.Good : label = "Gut so" : back = Theme.GoodBack : acc = Theme.GoodAccent
-                            Case Else : label = "Probieren Sie es aus" : back = Theme.TaskBack : acc = Theme.TaskAccent
+                            Case BlockKind.Tip : label = "Merke" : back = Theme.TipBack : acc = Theme.TipAccent : labelCol = Theme.TipText
+                            Case BlockKind.Warning : label = "Achtung" : back = Theme.WarnBack : acc = Theme.WarnAccent : labelCol = Theme.WarnText
+                            Case BlockKind.Good : label = "Gut so" : back = Theme.GoodBack : acc = Theme.GoodAccent : labelCol = Theme.GoodText
+                            Case Else : label = "Probieren Sie es aus" : back = Theme.TaskBack : acc = Theme.TaskAccent : labelCol = Theme.TaskText
                         End Select
                         Dim bp = CInt(12 * sc), stripe = CInt(5 * sc)
                         Dim inner = w - 2 * bp - stripe
@@ -200,7 +200,7 @@ Namespace UI
                                 g.Clip = oldClip
                             End Using
                             Dim tx = pad + stripe + bp
-                            TextRenderer.DrawText(g, label, Theme.FontBold, New Rectangle(tx, y + oy + bp, inner, lh), acc, Flags)
+                            TextRenderer.DrawText(g, label, Theme.FontBold, New Rectangle(tx, y + oy + bp, inner, lh), labelCol, Flags)
                             TextRenderer.DrawText(g, b.Text, Theme.FontBase, New Rectangle(tx, y + oy + bp + lh + CInt(3 * sc), inner, th), Theme.TextDark, Flags)
                         End If
                         y += bh + CInt(12 * sc)

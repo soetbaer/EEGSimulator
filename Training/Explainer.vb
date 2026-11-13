@@ -161,7 +161,7 @@ Namespace Training
                 list.Add(InfoBlock.Para("Am simulierten Signal gemessen: So viel Prozent der Wellenhöhe bleiben nach dem Filtern übrig."))
             End If
             If brain.Count > 0 Then
-                list.Add(InfoBlock.Subtitle("HIRNAKTIVITÄT – soll erhalten bleiben"))
+                list.Add(InfoBlock.Subtitle("Hirnaktivität – soll erhalten bleiben"))
                 For Each d In brain
                     Dim v = pass(d.Part)
                     Dim col = If(v >= 0.8, Theme.GoodAccent, If(v >= 0.5, Theme.TipAccent, Theme.WarnAccent))
@@ -169,7 +169,7 @@ Namespace Training
                 Next
             End If
             If arts.Count > 0 Then
-                list.Add(InfoBlock.Subtitle("ARTEFAKTE – sollen möglichst weg"))
+                list.Add(InfoBlock.Subtitle("Artefakte – sollen möglichst weg"))
                 For Each d In arts
                     Dim v = pass(d.Part)
                     Dim col = If(v <= 0.3, Theme.GoodAccent, If(v <= 0.7, Theme.TipAccent, Theme.WarnAccent))

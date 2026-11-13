@@ -27,10 +27,10 @@ Namespace UI
             New PointF(0.4F, 0.14F), New PointF(0.37F, 0.32F), New PointF(0.36F, 0.5F), New PointF(0.37F, 0.68F), New PointF(0.4F, 0.86F),
             New PointF(0.6F, 0.14F), New PointF(0.63F, 0.32F), New PointF(0.64F, 0.5F), New PointF(0.63F, 0.68F), New PointF(0.6F, 0.86F)}
 
-        Public Shared ReadOnly ColGood As Color = ColorTranslator.FromHtml("#22995A")
+        Public Shared ReadOnly ColGood As Color = ColorTranslator.FromHtml("#1B7F4B")
         Public Shared ReadOnly ColOkay As Color = ColorTranslator.FromHtml("#E8A317")
-        Public Shared ReadOnly ColBad As Color = ColorTranslator.FromHtml("#D64535")
-        Public Shared ReadOnly ColTooLow As Color = ColorTranslator.FromHtml("#1E7FD8")
+        Public Shared ReadOnly ColBad As Color = ColorTranslator.FromHtml("#C0392B")
+        Public Shared ReadOnly ColTooLow As Color = ColorTranslator.FromHtml("#1A6FC0")
 
         Public Sub New()
             SetStyle(ControlStyles.AllPaintingInWmPaint Or ControlStyles.OptimizedDoubleBuffer Or
@@ -177,8 +177,10 @@ Namespace UI
                     g.DrawEllipse(pen, c.X - rr, c.Y - rr, rr * 2, rr * 2)
                 End Using
                 Dim txt = If(v < 1, "<1", v.ToString("0", de))
+                ' auf Gelb ist weiße Schrift nicht lesbar -> dunkle Schrift
+                Dim txtCol = If(col = ColOkay, ColorTranslator.FromHtml("#3A2A00"), Color.White)
                 TextRenderer.DrawText(g, txt, Theme.FontBold, New Rectangle(CInt(c.X - rad), CInt(c.Y - rad), CInt(rad * 2), CInt(rad * 2)),
-                                      Color.White, TextFormatFlags.HorizontalCenter Or TextFormatFlags.VerticalCenter Or TextFormatFlags.NoPadding)
+                                      txtCol, TextFormatFlags.HorizontalCenter Or TextFormatFlags.VerticalCenter Or TextFormatFlags.NoPadding)
                 ' Name außen neben der Elektrode
                 Dim name = EegSimulator.ElectrodeNames(i)
                 Dim sz = TextRenderer.MeasureText(name, Theme.FontSmallBold)

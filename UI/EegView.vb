@@ -57,7 +57,8 @@ Namespace UI
 
         Private Function PlotRect() As RectangleF
             Dim lw = 96 * Sc
-            Return New RectangleF(lw, 6 * Sc, Width - lw - 78 * Sc, Height - 6 * Sc - 24 * Sc)
+            ' oben ein eigener Streifen für die Legende, damit sie keine Kurven verdeckt
+            Return New RectangleF(lw, 28 * Sc, Width - lw - 78 * Sc, Height - 28 * Sc - 24 * Sc)
         End Function
 
         Protected Overrides Sub OnMouseMove(e As MouseEventArgs)
@@ -250,8 +251,8 @@ Namespace UI
             Dim widths = items.Select(Function(it) TextRenderer.MeasureText(it.Item1, Theme.FontSmall).Width + CInt(28 * Sc)).ToList()
             Dim total = widths.Sum() + CInt(10 * Sc)
             Dim x = plot.Right - total
-            Dim y = plot.Top + 4 * Sc
             Dim h = 20 * Sc
+            Dim y = (plot.Top - h) / 2
             Using b As New SolidBrush(Color.FromArgb(230, Color.White)), p As New Pen(Theme.Border)
                 Dim r As New RectangleF(x, y, total, h)
                 Using path = Theme.RoundRect(r, 5 * Sc)

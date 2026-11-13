@@ -92,6 +92,12 @@ Namespace UI
             ResumeLayout(False)
             PerformLayout()
 
+            ' Namen für Bildschirmleser
+            _eeg.AccessibleName = "EEG-Kurven"
+            _eeg.AccessibleDescription = "Simulierte EEG-Kurven, rechts über links, unten EKG. Klick auf einen Kanal wählt ihn für die Frequenz-Ansicht."
+            _spectrum.AccessibleName = "Frequenz-Ansicht"
+            _imp.AccessibleName = "Impedanzen der Elektroden"
+            _info.AccessibleName = "Erklärung"
             AddHandler _timer.Tick, AddressOf OnTick
             AddHandler _eeg.ChannelClicked, AddressOf OnChannelClicked
 
@@ -136,7 +142,7 @@ Namespace UI
             Dim top As New Panel With {.Dock = DockStyle.Top, .Height = 52, .Padding = New Padding(16, 12, 16, 6), .BackColor = Theme.Card}
             _cmbLesson.Dock = DockStyle.Fill
             _cmbLesson.DropDownStyle = ComboBoxStyle.DropDownList
-            _cmbLesson.FlatStyle = FlatStyle.Flat
+            _cmbLesson.FlatStyle = FlatStyle.Standard
             _cmbLesson.Font = Theme.FontBold
             For i = 0 To _lessons.Count - 1
                 _cmbLesson.Items.Add($"{i + 1}.  {_lessons(i).Title}")
@@ -160,7 +166,7 @@ Namespace UI
             _navPanel.RowStyles.Add(New RowStyle(SizeType.Absolute, 34))
             _navPanel.RowStyles.Add(New RowStyle(SizeType.Percent, 100))
 
-            _btnReset = MakeButton("Lektion zurücksetzen (Ausgangszustand)", Theme.Card, Theme.Accent)
+            _btnReset = MakeButton("Lektion zurücksetzen (Ausgangszustand)", Theme.Card, Theme.AccentDark)
             _btnReset.Font = Theme.FontSmallBold
             _btnReset.Dock = DockStyle.Fill
             AddHandler _btnReset.Click, Sub() ApplyLesson(_lessonIndex)
@@ -172,7 +178,9 @@ Namespace UI
             AddHandler _btnPrev.Click, Sub() ApplyLesson(_lessonIndex - 1)
             _btnNext = MakeButton("Weiter  ►", Theme.Accent, Color.White)
             _btnNext.Dock = DockStyle.Fill
-            AddHandler _btnNext.Click, Sub() ApplyLesson(_lessonIndex + 1)
+            AddHandler _btnNext.Click, Sub()
+                                           If _lessonIndex >= _lessons.Count - 1 Then SetMode(False) Else ApplyLesson(_lessonIndex + 1)
+                                       End Sub
             _lblProgress.Dock = DockStyle.Fill
             _lblProgress.TextAlign = ContentAlignment.MiddleCenter
             _lblProgress.ForeColor = Theme.TextMuted
@@ -203,7 +211,7 @@ Namespace UI
                                                   .AutoScroll = True, .Padding = New Padding(18, 8, 8, 16), .BackColor = Theme.Card}
 
             ' ---- Filter ----
-            AddSection(flow, "FILTER")
+            AddSection(flow, "Filter")
             AddLabel(flow, "LowCut (FU)  ·  Zeitkonstante (TC)", "dämpft LANGSAME Wellen (z. B. Schwitzen)")
             SetupCombo(_cmbLowCut, LowCutOptions.Select(Function(t) LowCutLabel(t)))
             flow.Controls.Add(_cmbLowCut)
@@ -222,7 +230,7 @@ Namespace UI
             _tips.SetToolTip(_tglEcg, "Erkennt die Herzschläge im EKG-Kanal und zieht das gemittelte EKG-Artefakt aus jedem EEG-Kanal ab.")
 
             ' ---- Amplitude ----
-            AddSection(flow, "AMPLITUDE")
+            AddSection(flow, "Amplitude")
             AddLabel(flow, "Empfindlichkeit", "kleinere Zahl = größere Kurven")
             Dim sensRow As New FlowLayoutPanel With {.FlowDirection = FlowDirection.LeftToRight, .WrapContents = False,
                                                      .Size = New Size(ControlWidth, 40), .Margin = New Padding(0, 2, 0, 4), .BackColor = Theme.Card}
@@ -250,12 +258,12 @@ Namespace UI
             AddHandler _btnSensPlus.Click, Sub() StepSensitivity(-1)
 
             ' ---- Anzeige ----
-            AddSection(flow, "ANZEIGE")
+            AddSection(flow, "Anzeige")
             SetupToggle(flow, _tglRaw, "Rohsignal grau unterlegen", Theme.TraceRaw)
             SetupToggle(flow, _tglRemoved, "Entfernten Anteil rot zeigen", Theme.Removed)
 
             ' ---- Impedanzen ----
-            AddSection(flow, "IMPEDANZEN DER ELEKTRODEN")
+            AddSection(flow, "Impedanzen der Elektroden")
             AddHint(flow, "Werte in kΩ. Klick auf eine Elektrode: Wert erhöhen. Rechtsklick: verringern.")
             _imp.Size = New Size(ControlWidth, 300)
             _imp.Margin = New Padding(0, 0, 0, 4)
@@ -278,7 +286,7 @@ Namespace UI
             AddHandler _tglBridge.CheckedChanged, AddressOf OnControlChanged
 
             ' ---- Bausteine ----
-            AddSection(flow, "SIGNAL-BAUSTEINE")
+            AddSection(flow, "Signal-Bausteine")
             AddHint(flow, "Was steckt im simulierten EEG? Einzeln ein- und ausschalten.")
             AddSubLabel(flow, "Hirnaktivität")
             For Each d In PartCatalog.All.Where(Function(x) x.IsBrain)
@@ -311,7 +319,7 @@ Namespace UI
                                                  .WrapContents = False, .BackColor = Theme.AppBack, .Padding = New Padding(0, 2, 0, 6)}
             Dim btnBack = MakeButton("◄◄  10 s", Theme.Card, Theme.TextDark)
             btnBack.Width = 96
-            _btnPlay = MakeButton("►  Abspielen", Theme.Teal, Color.White)
+            _btnPlay = MakeButton("►  Abspielen", Theme.Accent, Color.White)
             _btnPlay.Width = 140
             Dim btnFwd = MakeButton("10 s  ►►", Theme.Card, Theme.TextDark)
             btnFwd.Width = 96
@@ -329,7 +337,7 @@ Namespace UI
             _lblTime.ForeColor = Theme.TextMuted
             _lblTime.Font = Theme.FontBold
             Dim lblHint As New Label With {.AutoSize = True, .Margin = New Padding(24, 10, 0, 0), .ForeColor = Theme.TextMuted, .Font = Theme.FontSmall,
-                                           .Text = "Tipp: Klick auf einen Kanalnamen wählt den Kanal für die Frequenz-Ansicht."}
+                                           .Text = "Klick auf Kanalnamen: Frequenz-Ansicht"}
             bar.Controls.AddRange({btnBack, _btnPlay, btnFwd, _lblTime, lblHint})
 
             ' EEG-Karte
@@ -365,9 +373,9 @@ Namespace UI
         End Function
 
         Private Shared Sub AddSection(flow As FlowLayoutPanel, text As String)
-            Dim lbl As New Label With {.Text = text, .Font = Theme.FontSection, .ForeColor = Theme.Accent, .AutoSize = False,
-                                       .Size = New Size(ControlWidth, 26), .TextAlign = ContentAlignment.BottomLeft, .Margin = New Padding(0, 14, 0, 0)}
-            Dim line As New Panel With {.Size = New Size(ControlWidth, 2), .BackColor = Theme.AccentLight, .Margin = New Padding(0, 2, 0, 6)}
+            Dim lbl As New Label With {.Text = text, .Font = Theme.FontHeading, .ForeColor = Theme.TextDark, .AutoSize = False,
+                                       .Size = New Size(ControlWidth, 30), .TextAlign = ContentAlignment.BottomLeft, .Margin = New Padding(0, 16, 0, 0)}
+            Dim line As New Panel With {.Size = New Size(ControlWidth, 1), .BackColor = Theme.Border, .Margin = New Padding(0, 3, 0, 6)}
             flow.Controls.Add(lbl)
             flow.Controls.Add(line)
         End Sub
@@ -395,7 +403,7 @@ Namespace UI
 
         Private Shared Sub SetupCombo(cmb As ComboBox, items As IEnumerable(Of String))
             cmb.DropDownStyle = ComboBoxStyle.DropDownList
-            cmb.FlatStyle = FlatStyle.Flat
+            cmb.FlatStyle = FlatStyle.Standard
             cmb.Font = Theme.FontBase
             cmb.Width = ControlWidth
             cmb.Margin = New Padding(0, 0, 0, 6)
@@ -427,6 +435,11 @@ Namespace UI
             _lessonMode = lessonMode
             _btnModeLessons.BackColor = If(lessonMode, Theme.Accent, Theme.HeaderBack)
             _btnModeFree.BackColor = If(lessonMode, Theme.HeaderBack, Theme.Accent)
+            ' wie ein Umschalter: der nicht gewählte Modus bleibt als umrandete Schaltfläche erkennbar
+            For Each b In {_btnModeLessons, _btnModeFree}
+                b.FlatAppearance.BorderColor = Theme.HeaderMuted
+                b.FlatAppearance.BorderSize = If(b.BackColor = Theme.Accent, 0, 1)
+            Next
             _btnModeLessons.FlatAppearance.MouseOverBackColor = Theme.Blend(_btnModeLessons.BackColor, Color.White, 0.15)
             _btnModeFree.FlatAppearance.MouseOverBackColor = Theme.Blend(_btnModeFree.BackColor, Color.White, 0.15)
             _navPanel.Visible = lessonMode
@@ -447,8 +460,7 @@ Namespace UI
             _suspend = False
             _lblProgress.Text = $"{index + 1} / {_lessons.Count}"
             _btnPrev.Enabled = index > 0
-            _btnNext.Enabled = index < _lessons.Count - 1
-            _btnNext.Text = If(index < _lessons.Count - 1, "Weiter  ►", "Fertig")
+            _btnNext.Text = If(index < _lessons.Count - 1, "Weiter  ►", "Frei üben  ►")
             ApplySettingsToControls()
             UpdateInfo(resetScroll:=True)
             ' rechte Leiste passend zur Lektion positionieren
@@ -605,12 +617,12 @@ Namespace UI
             Dim blocks As New List(Of InfoBlock)
             If _lessonMode Then
                 Dim les = _lessons(_lessonIndex)
-                blocks.Add(InfoBlock.Subtitle($"LEKTION {_lessonIndex + 1} VON {_lessons.Count}"))
+                blocks.Add(InfoBlock.Subtitle($"Lektion {_lessonIndex + 1} von {_lessons.Count}"))
                 blocks.Add(InfoBlock.Title(les.Title))
                 blocks.AddRange(les.Blocks)
                 blocks.Add(InfoBlock.Divider())
             Else
-                blocks.Add(InfoBlock.Subtitle("FREIER SIMULATOR"))
+                blocks.Add(InfoBlock.Subtitle("Freier Simulator"))
                 blocks.Add(InfoBlock.Title("Ausprobieren erwünscht!"))
                 blocks.Add(InfoBlock.Para("Alle Regler sind frei. Stellen Sie rechts zusammen, was im EEG stecken soll, und probieren Sie die Filter aus. Hier erklärt die Anwendung laufend, was Ihre Einstellung bewirkt."))
             End If

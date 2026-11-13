@@ -27,6 +27,7 @@ Namespace UI
             BackColor = Theme.Card
             Size = New Size(270, 28)
             TabStop = True
+            AccessibleRole = AccessibleRole.CheckButton
         End Sub
 
         Public Property Checked As Boolean
@@ -61,7 +62,7 @@ Namespace UI
         End Sub
 
         Protected Overrides Sub OnTextChanged(e As EventArgs)
-            MyBase.OnTextChanged(e) : Invalidate()
+            MyBase.OnTextChanged(e) : AccessibleName = Text : Invalidate()
         End Sub
 
         Protected Overrides Sub OnGotFocus(e As EventArgs)

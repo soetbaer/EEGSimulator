@@ -87,7 +87,7 @@ Namespace UI
                 Using b As New SolidBrush(bd.Item4)
                     g.FillRectangle(b, r.X, r.Bottom - 3 * sc, r.Width, 3 * sc)
                 End Using
-                TextRenderer.DrawText(g, bd.Item1, Theme.FontSmallBold, Rectangle.Round(r), Theme.Blend(bd.Item4, Color.Black, 0.25),
+                TextRenderer.DrawText(g, bd.Item1, Theme.FontSmallBold, Rectangle.Round(r), Theme.Blend(bd.Item4, Color.Black, 0.55),
                                       TextFormatFlags.HorizontalCenter Or TextFormatFlags.VerticalCenter Or TextFormatFlags.EndEllipsis)
             Next
 
@@ -189,7 +189,7 @@ Namespace UI
 
         ''' <summary>Zeichnet die Legende rechtsbündig und gibt deren linken Rand zurück.</summary>
         Private Function DrawLegend(g As Graphics, sc As Single) As Single
-            Dim items = {("vorher", Theme.SpectrumBefore, 0), ("nach dem Filter", Theme.ColAlpha, 0), ("Durchlass des Filters", Theme.Teal, 1), ("wird gedämpft", Color.FromArgb(90, Theme.Removed), 0)}
+            Dim items = {("vorher", Theme.SpectrumBefore, 0), ("nach dem Filter", Theme.ColAlpha, 0), ("Durchlass des Filters (Skala links)", Theme.Teal, 1), ("wird gedämpft", Color.FromArgb(90, Theme.Removed), 0)}
             Dim x = Width - 12 * sc
             Dim y = 10 * sc
             For i = items.Length - 1 To 0 Step -1

@@ -16,11 +16,11 @@ Namespace UI
         Public ReadOnly Card As Color = Color.White
         Public ReadOnly Border As Color = ColorTranslator.FromHtml("#D9E1EA")
         Public ReadOnly TextDark As Color = ColorTranslator.FromHtml("#1F2D3D")
-        Public ReadOnly TextMuted As Color = ColorTranslator.FromHtml("#6B7A8C")
-        Public ReadOnly Accent As Color = ColorTranslator.FromHtml("#1E7FD8")
+        Public ReadOnly TextMuted As Color = ColorTranslator.FromHtml("#566475")      ' Kontrast auf Weiß ≥ 4,5:1
+        Public ReadOnly Accent As Color = ColorTranslator.FromHtml("#1A6FC0")         ' weiße Schrift darauf ≥ 4,5:1
         Public ReadOnly AccentDark As Color = ColorTranslator.FromHtml("#155E9F")
         Public ReadOnly AccentLight As Color = ColorTranslator.FromHtml("#E3F0FC")
-        Public ReadOnly Teal As Color = ColorTranslator.FromHtml("#0FA3A3")
+        Public ReadOnly Teal As Color = ColorTranslator.FromHtml("#0B8080")
         Public ReadOnly TrackOff As Color = ColorTranslator.FromHtml("#C5CFDA")
 
         ' EEG-Papier
@@ -42,7 +42,12 @@ Namespace UI
         Public ReadOnly GoodBack As Color = ColorTranslator.FromHtml("#E7F6EE")
         Public ReadOnly GoodAccent As Color = ColorTranslator.FromHtml("#22995A")
         Public ReadOnly TaskBack As Color = ColorTranslator.FromHtml("#E8F2FC")
-        Public ReadOnly TaskAccent As Color = ColorTranslator.FromHtml("#1E7FD8")
+        Public ReadOnly TaskAccent As Color = ColorTranslator.FromHtml("#1A6FC0")
+        ' Beschriftungen der Hinweis-Boxen: dunkler als der Farbstreifen, damit sie lesbar bleiben
+        Public ReadOnly TipText As Color = ColorTranslator.FromHtml("#8A5A00")
+        Public ReadOnly WarnText As Color = ColorTranslator.FromHtml("#B02A1C")
+        Public ReadOnly GoodText As Color = ColorTranslator.FromHtml("#1A7444")
+        Public ReadOnly TaskText As Color = ColorTranslator.FromHtml("#155E9F")
 
         ' Frequenzbänder / Bausteine
         Public ReadOnly ColDrift As Color = ColorTranslator.FromHtml("#9C7A5B")
