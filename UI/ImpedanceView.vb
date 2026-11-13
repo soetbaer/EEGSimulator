@@ -4,8 +4,8 @@ Imports System.Drawing
 Imports System.Drawing.Drawing2D
 Imports System.Globalization
 Imports System.Windows.Forms
-Imports EegFilterTrainer.Simulation
-Imports EegFilterTrainer.Training
+Imports NeuroSim.Simulation
+Imports NeuroSim.Training
 
 Namespace UI
 

@@ -1,7 +1,7 @@
 Option Strict On
 
-Imports EegFilterTrainer.Simulation
-Imports EegFilterTrainer.UI
+Imports NeuroSim.Simulation
+Imports NeuroSim.UI
 
 Namespace Training
 

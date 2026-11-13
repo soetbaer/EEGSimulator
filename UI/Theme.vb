@@ -72,6 +72,21 @@ Namespace UI
         Public ReadOnly FontAppTitle As New Font("Segoe UI Semibold", 16.0F)
         Public ReadOnly FontChannel As New Font("Segoe UI Semibold", 9.0F)
 
+        Private _appIcon As Icon
+
+        ''' <summary>Programm-Icon (in die EXE eingebettet); Nothing, falls es nicht geladen werden kann.</summary>
+        Public Function AppIcon() As Icon
+            If _appIcon Is Nothing Then
+                Try
+                    Using s = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("NeuroSim.Icon.ico")
+                        If s IsNot Nothing Then _appIcon = New Icon(s)
+                    End Using
+                Catch
+                End Try
+            End If
+            Return _appIcon
+        End Function
+
         Public Function RoundRect(r As RectangleF, radius As Single) As GraphicsPath
             Dim p As New GraphicsPath()
             Dim d = Math.Min(radius * 2, Math.Min(r.Width, r.Height))

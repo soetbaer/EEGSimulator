@@ -1,6 +1,6 @@
 Option Strict On
 
-Imports EegFilterTrainer.Dsp
+Imports NeuroSim.Dsp
 
 Namespace Simulation
 

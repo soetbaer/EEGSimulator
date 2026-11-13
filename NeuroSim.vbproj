@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>NeuroSim</RootNamespace>
+    <AssemblyName>NeuroSim</AssemblyName>
+    <MyType>WindowsFormsWithCustomSubMain</MyType>
+    <StartupObject>NeuroSim.Program</StartupObject>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Product>NeuroSim</Product>
+    <AssemblyTitle>NeuroSim – der EEG-Simulator</AssemblyTitle>
+    <Description>Interaktive Schulungsanwendung: EEG-Filter, Impedanzen und Artefakte verstehen</Description>
+    <Authors>F. Soetbeer</Authors>
+    <Company>F. Soetbeer</Company>
+    <Copyright>Copyright © 2026 F. Soetbeer. Lizenz: GPL-3.0-or-later</Copyright>
+    <Version>1.0.0</Version>
+    <ApplicationIcon>Assets/NeuroSim.ico</ApplicationIcon>
+    <!-- erlaubt das Bauen auch auf Nicht-Windows-Systemen (z. B. CI); auf Windows ohne Wirkung -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Lizenztext wird in die EXE eingebettet und im Info-Dialog angezeigt -->
+    <EmbeddedResource Include="LICENSE" LogicalName="NeuroSim.LICENSE.txt" />
+    <EmbeddedResource Include="Assets/NeuroSim.ico" LogicalName="NeuroSim.Icon.ico" />
+  </ItemGroup>
+
+</Project>

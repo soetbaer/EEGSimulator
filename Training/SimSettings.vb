@@ -2,8 +2,8 @@ Option Strict On
 
 Imports System.Drawing
 Imports System.Globalization
-Imports EegFilterTrainer.Simulation
-Imports EegFilterTrainer.UI
+Imports NeuroSim.Simulation
+Imports NeuroSim.UI
 
 Namespace Training
 

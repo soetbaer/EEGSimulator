@@ -1,4 +1,4 @@
-# Konzept: EEG-Filter verständlich machen
+# NeuroSim – Konzept: EEG-Filter und Impedanzen verständlich machen
 
 Zielgruppe: MTA/MFA in der Neurologie, keine Techniker.
 Grundsatz: **Erst sehen, dann verstehen.** Keine Formeln im Vordergrund, sondern Bilder, Vergleiche und sofortiges Ausprobieren.

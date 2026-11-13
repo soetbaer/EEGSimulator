@@ -1,9 +1,9 @@
 Option Strict On
 
 Imports System.Drawing
-Imports EegFilterTrainer.Dsp
-Imports EegFilterTrainer.Simulation
-Imports EegFilterTrainer.UI
+Imports NeuroSim.Dsp
+Imports NeuroSim.Simulation
+Imports NeuroSim.UI
 
 Namespace Training
 

@@ -3,9 +3,10 @@ Option Strict On
 Imports System.Diagnostics
 Imports System.Drawing
 Imports System.Windows.Forms
-Imports EegFilterTrainer.Dsp
-Imports EegFilterTrainer.Simulation
-Imports EegFilterTrainer.Training
+Imports NeuroSim.Dsp
+Imports NeuroSim.Services
+Imports NeuroSim.Simulation
+Imports NeuroSim.Training
 
 Namespace UI
 
@@ -71,7 +72,9 @@ Namespace UI
             SuspendLayout()
             AutoScaleDimensions = New SizeF(96.0F, 96.0F)
             AutoScaleMode = AutoScaleMode.Dpi
-            Text = "EEG-Filter verstehen – Schulung für MTA in der Neurologie"
+            Text = $"{AppInfo.Name} – {AppInfo.Tagline}"
+            Dim appIco = Theme.AppIcon()
+            If appIco IsNot Nothing Then Icon = appIco
             Font = Theme.FontBase
             BackColor = Theme.AppBack
             Size = New Size(1500, 920)
@@ -113,9 +116,9 @@ Namespace UI
             Dim header As New Panel With {.Dock = DockStyle.Top, .Height = 64, .BackColor = Theme.HeaderBack}
 
             Dim logo As New LogoMark With {.Size = New Size(44, 64), .Location = New Point(14, 0)}
-            Dim title As New Label With {.Text = "EEG-Filter verstehen", .Font = Theme.FontAppTitle, .ForeColor = Theme.HeaderText,
+            Dim title As New Label With {.Text = AppInfo.Name, .Font = Theme.FontAppTitle, .ForeColor = Theme.HeaderText,
                                          .AutoSize = True, .Location = New Point(64, 8)}
-            Dim sub1 As New Label With {.Text = "Interaktive Schulung: LowCut · HiCut · Amplitude · 50-Hz-Filter · Impedanzen · EKG-Filter",
+            Dim sub1 As New Label With {.Text = "Der EEG-Simulator: Filter · Impedanzen · Artefakte verstehen",
                                         .Font = Theme.FontSmall, .ForeColor = Theme.HeaderMuted, .AutoSize = True, .Location = New Point(66, 38)}
 
             Dim modes As New FlowLayoutPanel With {.Dock = DockStyle.Right, .FlowDirection = FlowDirection.LeftToRight, .WrapContents = False,
@@ -126,8 +129,18 @@ Namespace UI
             _btnModeFree.Width = 160
             AddHandler _btnModeLessons.Click, Sub() SetMode(True)
             AddHandler _btnModeFree.Click, Sub() SetMode(False)
+            Dim btnInfo = MakeButton("Info", Theme.HeaderBack, Color.White)
+            btnInfo.Width = 72
+            btnInfo.Margin = New Padding(14, 3, 3, 3)
+            btnInfo.FlatAppearance.BorderSize = 1
+            btnInfo.FlatAppearance.BorderColor = Theme.HeaderMuted
+            btnInfo.FlatAppearance.MouseOverBackColor = Theme.Blend(Theme.HeaderBack, Color.White, 0.15)
+            btnInfo.AccessibleName = "Info über NeuroSim: Quellen, Haftungsausschluss, Lizenz, Updates"
+            _tips.SetToolTip(btnInfo, "Über NeuroSim: Entwickler, Quellen, Haftungsausschluss, Lizenz und Updates (F1)")
+            AddHandler btnInfo.Click, Sub() ShowInfo()
             modes.Controls.Add(_btnModeLessons)
             modes.Controls.Add(_btnModeFree)
+            modes.Controls.Add(btnInfo)
 
             header.Controls.Add(modes)
             header.Controls.Add(logo)
@@ -704,7 +717,30 @@ Namespace UI
             _lblTime.Text = $"{_viewStart:0} – {_viewStart + WindowSec:0} s  von {EegSimulator.Duration:0} s"
         End Sub
 
+        Private Sub ShowInfo()
+            Using dlg As New AboutForm()
+                dlg.ShowDialog(Me)
+            End Using
+        End Sub
+
+        ''' <summary>Nach dem ersten Anzeigen: Reste eines Updates wegräumen und still nach einer neuen Version suchen.</summary>
+        Protected Overrides Async Sub OnShown(e As EventArgs)
+            MyBase.OnShown(e)
+            Updater.CleanupOldVersion()
+            If Not AppSettings.AutoUpdateCheck Then Return
+            Try
+                Dim info = Await Updater.CheckAsync()
+                If info IsNot Nothing AndAlso info.IsNewer AndAlso Not IsDisposed Then UpdatePrompt.ShowFor(Me, info)
+            Catch
+                ' kein Netz oder GitHub nicht erreichbar: beim Start nicht stören
+            End Try
+        End Sub
+
         Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
+            If keyData = Keys.F1 Then
+                ShowInfo()
+                Return True
+            End If
             ' Leertaste = Abspielen/Pause, Bild auf/ab = blättern (wenn kein Eingabefeld aktiv ist)
             If TypeOf ActiveControl Is ComboBox OrElse TypeOf ActiveControl Is ImpedanceView Then Return MyBase.ProcessCmdKey(msg, keyData)
             Select Case keyData
