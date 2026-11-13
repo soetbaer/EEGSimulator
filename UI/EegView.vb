@@ -173,7 +173,7 @@ Namespace UI
             Dim yOf = Function(idx As Integer) As Single
                           Dim v = a(idx)
                           If b IsNot Nothing Then v -= b(idx)
-                          Dim y = cy - CSng(v) * pxPerUv
+                          Dim y = cy + CSng(v) * pxPerUv      ' EEG-Konvention: negativ nach oben
                           Return Math.Max(-limit, Math.Min(limit + plot.Bottom, y))
                       End Function
             Dim xOf = Function(idx As Integer) As Single
@@ -226,6 +226,7 @@ Namespace UI
             End Using
             TextRenderer.DrawText(g, $"{uv} µV", Theme.FontSmallBold, New Point(CInt(x + 8 * Sc), CInt(yb - h / 2 - 8 * Sc)), Theme.Trace)
             TextRenderer.DrawText(g, "Eichung", Theme.FontSmall, New Point(CInt(x - 8 * Sc), CInt(yb - h - 22 * Sc)), Theme.TextMuted)
+            TextRenderer.DrawText(g, "neg. ▲", Theme.FontSmall, New Point(CInt(x - 8 * Sc), CInt(plot.Top + 2 * Sc)), Theme.TextMuted)
         End Sub
 
         Private Sub DrawLegend(g As Graphics, plot As RectangleF)

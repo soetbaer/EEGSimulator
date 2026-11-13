@@ -19,6 +19,8 @@ Namespace Simulation
     End Enum
 
     ''' <summary>
+    ''' Alle Werte sind Potentialdifferenzen (Eingang 1 minus Eingang 2) in µV.
+    ''' Die Anzeige folgt der EEG-Konvention "negativ nach oben".
     ''' Erzeugt ein reproduzierbares, simuliertes 8-Kanal-EEG (Längsreihe / "Doppelbanane")
     ''' plus EKG-Kanal. Jeder Baustein wird einmal vorberechnet und kann dann beliebig
     ''' ein- und ausgeschaltet werden.
@@ -38,8 +40,8 @@ Namespace Simulation
             {SignalPart.Theta, {0.3, 0.6, 0.7, 0.5, 0.3, 0.6, 0.7, 0.5, 0}},
             {SignalPart.Alpha, {0.1, 0.2, 0.5, 1.0, 0.1, 0.2, 0.55, 1.0, 0}},          ' okzipital betont
             {SignalPart.Beta, {0.8, 1.0, 0.7, 0.3, 0.8, 1.0, 0.7, 0.3, 0}},            ' frontozentral
-            {SignalPart.Spikes, {0.15, 1.0, -0.9, -0.1, 0, 0.05, 0.05, 0, 0}},         ' Spike-Herd C3
-            {SignalPart.Blinks, {1.0, 0.25, 0.05, 0, 1.0, 0.25, 0.05, 0, 0}},          ' frontopolar
+            {SignalPart.Spikes, {0.15, 1.0, -0.9, -0.1, 0, 0.05, 0.05, 0, 0}},         ' oberflächennegativer Spike-Herd C3: F3-C3 positiv, C3-P3 negativ
+            {SignalPart.Blinks, {1.0, 0.25, 0.05, 0, 1.0, 0.25, 0.05, 0, 0}},          ' Fp positiv (Bell-Phänomen) -> Ausschlag nach unten
             {SignalPart.Sweat, {1.0, 0.6, 0.5, 0.7, 0.9, 0.7, 0.4, 0.8, 0.1}},
             {SignalPart.Emg, {1.0, 0.5, 0.25, 0.3, 1.0, 0.55, 0.25, 0.35, 0.15}},       ' frontal
             {SignalPart.Hum, {0.25, 0.2, 0.25, 0.2, 0.25, 0.2, 1.0, 1.15, 0.3}},        ' schlechte Elektrode P4
@@ -150,10 +152,10 @@ Namespace Simulation
             ' ---------- Schwitzartefakt: sehr langsame, unabhängige Schwankungen ----------
             Dim sw = NewSet()
             For c = 0 To ChannelNames.Length - 1
-                Dim fq = {0.06, 0.11, 0.19}
+                Dim fq = {0.1, 0.22, 0.38}
                 Dim amps = fq.Select(Function(f) 0.5 + rng.NextDouble() * 0.5).ToArray()
                 Dim phs = fq.Select(Function(f) rng.NextDouble() * 2 * Math.PI).ToArray()
-                Dim slow = SmoothNoise(rng, 0.15)
+                Dim slow = SmoothNoise(rng, 0.3)
                 Dim buf(SampleCount - 1) As Double
                 For i = 0 To SampleCount - 1
                     Dim t = i / fs, v = 0.5 * slow(i)
@@ -199,9 +201,27 @@ Namespace Simulation
                 AddEvent(beat, tr, 0.6, AddressOf EcgShape)
                 tr += 0.82 + 0.035 * Math.Sin(2 * Math.PI * tr / 4.5) + 0.03 * (rng.NextDouble() - 0.5)
             End While
-            For i = 0 To SampleCount - 1 : _background(EcgChannel)(i) += 800 * beat(i) : Next
+            For i = 0 To SampleCount - 1 : _background(EcgChannel)(i) -= 800 * beat(i) : Next
             _parts(SignalPart.Ecg) = Spread(SignalPart.Ecg, beat, beat, 40)
         End Sub
+
+        ''' <summary>
+        ''' Signal eines einzelnen Bausteins in dem Kanal, in dem er am stärksten ist
+        ''' (für die Messung "wie viel kommt durch den Filter").
+        ''' </summary>
+        Public Function PartSignal(part As SignalPart) As Double()
+            Dim w = Weights(part)
+            Dim best = 0
+            For c = 1 To w.Length - 1
+                If c <> EcgChannel AndAlso Math.Abs(w(c)) > Math.Abs(w(best)) Then best = c
+            Next
+            Return _parts(part)(best)
+        End Function
+
+        ''' <summary>Signal eines Bausteins in einem bestimmten Kanal.</summary>
+        Public Function PartSignal(part As SignalPart, channel As Integer) As Double()
+            Return _parts(part)(channel)
+        End Function
 
         ''' <summary>Mischt Hintergrund + gewählte Bausteine zu einem Roh-EEG.</summary>
         Public Function Mix(parts As IEnumerable(Of SignalPart)) As Double()()

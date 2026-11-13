@@ -21,6 +21,7 @@ Namespace UI
         Private _raw As Double()()
         Private _filtered As Double()()
         Private _peaks As List(Of Integer)
+        Private _ecgRemaining As Double?
         Private _lessonIndex As Integer
         Private _lessonMode As Boolean = True
         Private _suspend As Boolean
@@ -493,11 +494,17 @@ Namespace UI
             Next
 
             _peaks = Nothing
+            _ecgRemaining = Nothing
             If _settings.EcgFilter Then
                 _peaks = EcgArtifactRemover.DetectRPeaks(_raw(EegSimulator.EcgChannel), fs)
+                Const MeasureChannel As Integer = 3     ' P3-O1: dort ist das EKG-Artefakt am stärksten
+                Dim beforeRemoval = CType(_filtered(MeasureChannel).Clone(), Double())
                 For c = 0 To _raw.Length - 1
                     If c <> EegSimulator.EcgChannel Then EcgArtifactRemover.Remove(_filtered(c), _peaks, fs)
                 Next
+                If _settings.Parts.Contains(SignalPart.Ecg) AndAlso _peaks.Count >= 3 Then
+                    _ecgRemaining = MeasureEcgRemaining(beforeRemoval, _filtered(MeasureChannel), MeasureChannel)
+                End If
             End If
 
             _lblSens.Text = SensLabel(_settings.Sensitivity)
@@ -517,6 +524,29 @@ Namespace UI
             UpdateSpectrum()
             UpdateInfo(resetScroll:=False)
         End Sub
+
+        ''' <summary>
+        ''' Misst, wie viel vom EKG-Artefakt nach Filterkette + EKG-Filter übrig ist (0 … 1),
+        ''' jeweils im Bereich ±30 ms um die tatsächlichen Herzschläge.
+        ''' </summary>
+        Private Function MeasureEcgRemaining(beforeRemoval As Double(), afterRemoval As Double(), channel As Integer) As Double
+            Dim fs = EegSimulator.SampleRate
+            Dim rawArt = _sim.PartSignal(SignalPart.Ecg, channel)
+            Dim filtArt = CType(rawArt.Clone(), Double())
+            _chain.ProcessInPlace(filtArt)
+            Dim half = CInt(0.03 * fs)
+            Dim a = 0.0, b = 0.0
+            For Each p In _sim.TrueBeats
+                For i = Math.Max(0, p - half) To Math.Min(rawArt.Length - 1, p + half)
+                    Dim removed = beforeRemoval(i) - afterRemoval(i)
+                    Dim rest = filtArt(i) - removed
+                    a += rawArt(i) * rawArt(i)
+                    b += rest * rest
+                Next
+            Next
+            If a <= 0 Then Return 0
+            Return Math.Min(1.0, Math.Sqrt(b / a))
+        End Function
 
         Private Sub UpdateSpectrum()
             If _raw Is Nothing Then Return
@@ -546,7 +576,7 @@ Namespace UI
                 blocks.Add(InfoBlock.Title("Ausprobieren erwünscht!"))
                 blocks.Add(InfoBlock.Para("Alle Regler sind frei. Stellen Sie rechts zusammen, was im EEG stecken soll, und probieren Sie die Filter aus. Hier erklärt die Anwendung laufend, was Ihre Einstellung bewirkt."))
             End If
-            blocks.AddRange(Explainer.Describe(_settings, _chain, If(_peaks Is Nothing, 0, _peaks.Count)))
+            blocks.AddRange(Explainer.Describe(_settings, _chain, _sim, If(_peaks Is Nothing, 0, _peaks.Count), _ecgRemaining))
             _info.SetBlocks(blocks, resetScroll)
         End Sub
 

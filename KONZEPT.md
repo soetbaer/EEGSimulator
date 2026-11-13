@@ -41,6 +41,7 @@ Wiederkehrende Elemente in jeder Lektion:
 ## 3. Simulation
 
 - Abtastrate 500 Hz, 65,5 s Aufnahme, reproduzierbar (fester Zufallsstartwert)
+- Alle Werte sind Potentialdifferenzen (Eingang 1 minus Eingang 2); die Anzeige folgt der Konvention „negativ nach oben“
 - Bausteine, einzeln zuschaltbar:
 
 | Baustein | Eigenschaft |
@@ -49,9 +50,9 @@ Wiederkehrende Elemente in jeder Lektion:
 | Theta | – |
 | Alpha | okzipital, an- und abschwellend |
 | Beta | – |
-| Spike-Wave | Herd C3 |
-| Augenblinzeln | – |
-| Schwitzartefakt | – |
+| Spike-Wave | oberflächennegativ, Herd C3 mit Phasenumkehr |
+| Augenblinzeln | Fp positiv, Ausschlag nach unten |
+| Schwitzartefakt | sehr langsam (0,1–0,4 Hz), je Kanal unabhängig |
 | EMG | schubweise, frontal |
 | 50-Hz-Brumm | schlechte Elektrode P4 |
 | EKG-Artefakt | – |
@@ -74,3 +75,25 @@ Alle Filter arbeiten kausal, also wie in einem echten Gerät.
 3. Die Grundlinie wird entfernt. Eine statistische Schrumpfung sorgt dafür, dass kein EEG-Rauschen mit abgezogen wird.
 4. Die Ränder werden weich ausgeblendet (Tukey-Fenster).
 5. Die Schablone wird bei jedem Herzschlag abgezogen.
+
+## 4. Fachliche Grundlagen und Quellen
+
+Die Texte und die Simulation wurden gegen öffentlich zugängliche Leitlinien und Fachliteratur geprüft.
+
+| Aussage in der Anwendung | Grundlage |
+|---|---|
+| LowCut höchstens 0,5 Hz (TC 0,3 s), HiCut mindestens 70 Hz, Empfindlichkeit 5–10 µV/mm | DGKN, Empfehlungen für die Durchführung von EEG-Ableitungen bei Erwachsenen (Fassung 2024) |
+| Bei Kindern meist 10 µV/mm, bei niedriger Amplitude 7 µV/mm | DGKN, Empfehlungen für EEG-Ableitungen bei Kindern |
+| LowCut höchstens 1 Hz (TC mindestens 0,16 s), HiCut mindestens 70 Hz; Netzfilter nur, wenn andere Maßnahmen versagen, weil er Spikes verändern kann | ACNS Guideline 1: Minimum Technical Requirements for Performing Clinical EEG (2016) |
+| Spike: 20 bis unter 70 ms; Frequenzbänder | IFCN-Glossar (Kane et al., Clin Neurophysiol Pract 2017) |
+| Polarität „negativ nach oben“; Phasenumkehr an der gemeinsamen Elektrode | Beniczky & Schomer, Epileptic Disord 2020; Lehrbuchstandard |
+| Augenblinzeln: Fp wird positiv, Ausschlag nach unten in Fp1-F3/Fp2-F4 | Hornhaut-Netzhaut-Dipol und Bell-Phänomen; Lehrbuchstandard |
+| Schwitzartefakt: sehr langsam, unter 0,5 Hz | Lehrbuchstandard (z. B. R.-EEG-T.-Lehrmaterial) |
+| Muskelartefakt reicht von etwa 20 bis 300 Hz; gefiltert kann es Beta oder steile Wellen vortäuschen | Muthukumaraswamy, Front Hum Neurosci 2013; Goncharova et al., Clin Neurophysiol 2003 |
+| EKG-Filter durch R-Zacken-getriggerte Mittelung und Subtraktion | Nakamura & Shibasaki, Electroencephalogr Clin Neurophysiol 1987; 66: 88–92 |
+
+### Bewusste Vereinfachungen
+
+- Die Flankensteilheit der Filter ist geräteabhängig. Hier: LowCut 6 dB/Oktave (wie ein RC-Glied), HiCut 12 dB/Oktave.
+- Die Signale sind synthetisch. Amplituden und Verteilung sind typisch gewählt, bilden aber keinen einzelnen Patienten ab.
+- Die Balken „So viel kommt durch“ werden am simulierten Baustein gemessen (Effektivwert, bei Spikes, Blinzeln und EKG die Spitzenhöhe).
