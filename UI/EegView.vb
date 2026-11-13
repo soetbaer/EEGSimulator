@@ -27,6 +27,39 @@ Namespace UI
         Public Property ShowRemoved As Boolean
         Public Property SelectedChannel As Integer = 3
 
+        ' ---- Schreiblinie (wie am EEG-Gerät): die Seite steht, eine Linie läuft von links nach rechts
+        '      und schreibt die neue Kurve über die alte Seite ----
+        ''' <summary>Schreiblinien-Darstellung aktiv (sonst: stehende Seite ab StartSeconds).</summary>
+        Public Property SweepActive As Boolean
+        ''' <summary>Beginn der Seite, die gerade geschrieben wird (s).</summary>
+        Public Property PageStart As Double
+        ''' <summary>Beginn der vorherigen Seite, die rechts der Schreiblinie noch steht (s); NaN = keine.</summary>
+        Public Property OldPageStart As Double = Double.NaN
+        ''' <summary>Position der Schreiblinie innerhalb der Seite (s).</summary>
+        Public Property SweepPos As Double
+        ''' <summary>Lücke vor der Schreiblinie, in der die alte Kurve schon gelöscht ist (s).</summary>
+        Private Const SweepGap As Double = 0.3
+
+        ''' <summary>Ein Kurvenabschnitt: Zeit "From" bis "To", gezeichnet relativ zum Seitenanfang "Origin".</summary>
+        Private Structure Segment
+            Public Origin As Double
+            Public From As Double
+            Public [To] As Double
+        End Structure
+
+        Private Function Segments() As List(Of Segment)
+            Dim list As New List(Of Segment)
+            If Not SweepActive Then
+                list.Add(New Segment With {.Origin = StartSeconds, .From = StartSeconds, .To = StartSeconds + WindowSeconds})
+            Else
+                list.Add(New Segment With {.Origin = PageStart, .From = PageStart, .To = PageStart + SweepPos})
+                If Not Double.IsNaN(OldPageStart) AndAlso SweepPos + SweepGap < WindowSeconds Then
+                    list.Add(New Segment With {.Origin = OldPageStart, .From = OldPageStart + SweepPos + SweepGap, .To = OldPageStart + WindowSeconds})
+                End If
+            End If
+            Return list
+        End Function
+
         ''' <summary>
         ''' Reihenfolge der Kanäle von oben nach unten (Kanalindex je Zeile).
         ''' DGKN-Empfehlung zu Ableiteprogrammen: rechts über links, anterior über posterior, EKG zuletzt.
@@ -98,16 +131,23 @@ Namespace UI
             End If
 
             ' Raster: 0,2 s fein, 1 s kräftig
-            Dim firstTick = CInt(Math.Ceiling(StartSeconds * 5 - 0.000001))
-            Dim lastTick = CInt(Math.Floor((StartSeconds + WindowSeconds) * 5 + 0.000001))
+            Dim origin = If(SweepActive, PageStart, StartSeconds)
+            Dim firstTick = CInt(Math.Ceiling(origin * 5 - 0.000001))
+            Dim lastTick = CInt(Math.Floor((origin + WindowSeconds) * 5 + 0.000001))
             Using pMinor As New Pen(Theme.GridMinor, 1), pMajor As New Pen(Theme.GridMajor, 1)
                 For k = firstTick To lastTick
                     Dim t = k / 5.0
-                    Dim x = plot.Left + CSng((t - StartSeconds) * secPx)
+                    Dim x = plot.Left + CSng((t - origin) * secPx)
                     Dim major = (k Mod 5 = 0)
                     g.DrawLine(If(major, pMajor, pMinor), x, plot.Top, x, plot.Bottom)
-                    If major Then
-                        Dim lbl = $"{CInt(t)} s"
+                    ' rechts der Schreiblinie steht noch die alte Seite: dort gilt deren Zeit
+                    Dim labelTime = t
+                    Dim showLabel = major
+                    If SweepActive AndAlso t - origin > SweepPos + 0.000001 Then
+                        If Double.IsNaN(OldPageStart) Then showLabel = False Else labelTime = OldPageStart + (t - origin)
+                    End If
+                    If showLabel Then
+                        Dim lbl = $"{CInt(Math.Round(labelTime))} s"
                         Dim sz = TextRenderer.MeasureText(lbl, Theme.FontSmall)
                         TextRenderer.DrawText(g, lbl, Theme.FontSmall, New Point(CInt(x - sz.Width / 2), CInt(plot.Bottom + 4 * Sc)), Theme.TextMuted)
                     End If
@@ -149,9 +189,11 @@ Namespace UI
                     Dim cy = plot.Top + rowH * (RowOf(c) + 0.5F)
                     Dim pxPerUv = pxPerMm / CSng(Sensitivity)
                     If c = EcgChannel Then pxPerUv /= CSng(EcgScaleDivisor)
-                    If ShowRaw Then DrawTrace(g, _raw(c), Nothing, plot, cy, pxPerUv, pRaw)
-                    DrawTrace(g, _filtered(c), Nothing, plot, cy, pxPerUv, pTrace)
-                    If ShowRemoved Then DrawTrace(g, _raw(c), _filtered(c), plot, cy, pxPerUv, pRem)
+                    For Each seg In Segments()
+                        If ShowRaw Then DrawTrace(g, _raw(c), Nothing, plot, cy, pxPerUv, pRaw, seg)
+                        DrawTrace(g, _filtered(c), Nothing, plot, cy, pxPerUv, pTrace, seg)
+                        If ShowRemoved Then DrawTrace(g, _raw(c), _filtered(c), plot, cy, pxPerUv, pRem, seg)
+                    Next
                 Next
             End Using
 
@@ -160,12 +202,23 @@ Namespace UI
                 Using b As New SolidBrush(Theme.ColEcg)
                     Dim yTop = plot.Top + rowH * RowOf(EcgChannel) + 3 * Sc
                     Dim s = 5 * Sc
-                    For Each p In _peaks
-                        Dim t = p / _fs
-                        If t < StartSeconds OrElse t > StartSeconds + WindowSeconds Then Continue For
-                        Dim x = plot.Left + CSng((t - StartSeconds) * secPx)
-                        g.FillPolygon(b, {New PointF(x - s, yTop), New PointF(x + s, yTop), New PointF(x, yTop + s * 1.4F)})
+                    For Each seg In Segments()
+                        For Each p In _peaks
+                            Dim t = p / _fs
+                            If t < seg.From OrElse t > seg.To Then Continue For
+                            Dim x = plot.Left + CSng((t - seg.Origin) * secPx)
+                            g.FillPolygon(b, {New PointF(x - s, yTop), New PointF(x + s, yTop), New PointF(x, yTop + s * 1.4F)})
+                        Next
                     Next
+                End Using
+            End If
+
+            ' Schreiblinie
+            If SweepActive Then
+                Dim sx = plot.Left + CSng(SweepPos * secPx)
+                Using glow As New Pen(Color.FromArgb(45, Theme.Accent), 7 * Sc), pen As New Pen(Theme.Accent, 2 * Sc)
+                    g.DrawLine(glow, sx, plot.Top, sx, plot.Bottom)
+                    g.DrawLine(pen, sx, plot.Top, sx, plot.Bottom)
                 End Using
             End If
             g.Clip = oldClip
@@ -175,11 +228,12 @@ Namespace UI
         End Sub
 
         ''' <summary>Zeichnet eine Kurve; bei mehr Abtastwerten als Pixeln mit Min/Max-Verdichtung.</summary>
-        Private Sub DrawTrace(g As Graphics, a As Double(), b As Double(), plot As RectangleF, cy As Single, pxPerUv As Single, pen As Pen)
+        Private Sub DrawTrace(g As Graphics, a As Double(), b As Double(), plot As RectangleF, cy As Single, pxPerUv As Single, pen As Pen, seg As Segment)
             Dim n = a.Length
             Dim secPx = plot.Width / WindowSeconds
-            Dim i0 = Math.Max(0, CInt(Math.Floor(StartSeconds * _fs)))
-            Dim i1 = Math.Min(n - 1, CInt(Math.Ceiling((StartSeconds + WindowSeconds) * _fs)))
+            If seg.To <= seg.From Then Return
+            Dim i0 = Math.Max(0, CInt(Math.Floor(seg.From * _fs)))
+            Dim i1 = Math.Min(n - 1, CInt(Math.Floor(seg.To * _fs)))
             If i1 <= i0 Then Return
             Dim limit = plot.Height * 3
             Dim yOf = Function(idx As Integer) As Single
@@ -189,10 +243,11 @@ Namespace UI
                           Return Math.Max(-limit, Math.Min(limit + plot.Bottom, y))
                       End Function
             Dim xOf = Function(idx As Integer) As Single
-                          Return plot.Left + CSng((idx / _fs - StartSeconds) * secPx)
+                          Return plot.Left + CSng((idx / _fs - seg.Origin) * secPx)
                       End Function
 
-            Dim cols = CInt(plot.Width)
+            Dim xStart = xOf(i0)
+            Dim cols = Math.Max(1, CInt(Math.Ceiling(xOf(i1) - xStart)))
             Dim samplesPerPx = (i1 - i0) / CDbl(cols)
             Dim pts As New List(Of PointF)(cols * 2 + 4)
             If samplesPerPx <= 2.0 Then
@@ -211,7 +266,7 @@ Namespace UI
                         If y < minY Then minY = y : minI = i
                         If y > maxY Then maxY = y : maxI = i
                     Next
-                    Dim x = plot.Left + col
+                    Dim x = xStart + col
                     If minI <= maxI Then
                         pts.Add(New PointF(x, minY)) : pts.Add(New PointF(x + 0.5F, maxY))
                     Else

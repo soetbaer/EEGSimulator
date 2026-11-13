@@ -41,7 +41,7 @@ Namespace Training
                     InfoBlock.Bullet("Wie am echten Gerät gilt die EEG-Konvention 'negativ nach oben': Ist die erste Elektrode eines Kanals negativer als die zweite, schlägt die Kurve nach oben aus."),
                     InfoBlock.Bullet("Unten sehen Sie die Frequenz-Ansicht: Sie zeigt, wie viel von jeder Wellen-Geschwindigkeit im Signal steckt."),
                     InfoBlock.Tip("Frequenz = wie viele Wellen pro Sekunde. Die Einheit ist Hertz (Hz).  10 Hz = 10 Wellen pro Sekunde."),
-                    InfoBlock.TryIt("Zählen Sie in P3-O1 die Wellen zwischen zwei Sekundenlinien. Klicken Sie dann links auf einen anderen Kanalnamen – die Frequenz-Ansicht zeigt jetzt diesen Kanal. Mit 'Abspielen' läuft das EEG wie am Gerät.")
+                    InfoBlock.TryIt("Zählen Sie in P3-O1 die Wellen zwischen zwei Sekundenlinien. Klicken Sie dann links auf einen anderen Kanalnamen – die Frequenz-Ansicht zeigt jetzt diesen Kanal. Mit 'Abspielen' läuft die Schreiblinie wie am Gerät von links nach rechts und schreibt das EEG neu.")
                 }})
 
             ' 2 ---------------------------------------------------------------

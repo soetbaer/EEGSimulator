@@ -613,6 +613,10 @@ Namespace UI
             _eeg.Sensitivity = _settings.Sensitivity
             _eeg.WindowSeconds = WindowSec
             _eeg.StartSeconds = _viewStart
+            _eeg.SweepActive = _sweep
+            _eeg.PageStart = _pageStart
+            _eeg.OldPageStart = _oldPageStart
+            _eeg.SweepPos = _sweepPos
             _eeg.ShowRaw = _settings.ShowRaw
             _eeg.ShowRemoved = _settings.ShowRemoved
             _eeg.SelectedChannel = _settings.SelectedChannel
@@ -682,39 +686,78 @@ Namespace UI
         '  Abspielen / Blättern
         ' =====================================================================
 
+        ' Schreiblinie: Die Seite steht, die Linie läuft von links nach rechts und schreibt die
+        ' nächste Seite über die alte – wie am EEG-Gerät.
+        Private _sweep As Boolean           ' Schreiblinien-Darstellung aktiv (läuft oder pausiert)
+        Private _pageStart As Double        ' Beginn der Seite, die gerade geschrieben wird
+        Private _oldPageStart As Double = Double.NaN
+        Private _sweepPos As Double         ' Position der Schreiblinie in der Seite (s)
+
+        Private Shared Function NextPage(pageStart As Double) As Double
+            Dim nxt = pageStart + WindowSec
+            Return If(nxt > EegSimulator.Duration - WindowSec, 0.0, nxt)
+        End Function
+
         Private Sub TogglePlay()
             If _timer.Enabled Then
                 _timer.Stop()
                 _clock.Stop()
                 _btnPlay.Text = "►  Abspielen"
             Else
+                If Not _sweep Then
+                    ' Die gezeigte Seite bleibt stehen, die Schreiblinie beginnt links mit der nächsten Seite
+                    _sweep = True
+                    _oldPageStart = _viewStart
+                    _pageStart = NextPage(_viewStart)
+                    _sweepPos = 0
+                End If
                 _clock.Restart()
                 _lastTick = 0
                 _timer.Start()
                 _btnPlay.Text = "■  Anhalten"
             End If
+            ApplySweepToView()
         End Sub
 
         Private Sub OnTick(sender As Object, e As EventArgs)
             Dim now = _clock.Elapsed.TotalSeconds
-            Dim dt = now - _lastTick
+            Dim dt = Math.Min(0.5, now - _lastTick)
             _lastTick = now
-            _viewStart += dt
-            If _viewStart > EegSimulator.Duration - WindowSec Then _viewStart = 0
+            _sweepPos += dt
+            If _sweepPos >= WindowSec Then
+                _sweepPos -= WindowSec
+                _oldPageStart = _pageStart
+                _pageStart = NextPage(_pageStart)
+            End If
+            ApplySweepToView()
+        End Sub
+
+        Private Sub ApplySweepToView()
+            _eeg.SweepActive = _sweep
+            _eeg.PageStart = _pageStart
+            _eeg.OldPageStart = _oldPageStart
+            _eeg.SweepPos = _sweepPos
             _eeg.StartSeconds = _viewStart
             _eeg.Invalidate()
             UpdateTimeLabel()
         End Sub
 
+        ' Blättern: hält die Schreiblinie an und zeigt eine stehende Seite.
         Private Sub MoveView(delta As Double)
-            _viewStart = Math.Max(0, Math.Min(EegSimulator.Duration - WindowSec, Math.Round(_viewStart + delta)))
-            _eeg.StartSeconds = _viewStart
-            _eeg.Invalidate()
-            UpdateTimeLabel()
+            If _timer.Enabled Then TogglePlay()
+            Dim base = If(_sweep, _pageStart, _viewStart)
+            _sweep = False
+            _oldPageStart = Double.NaN
+            _viewStart = Math.Max(0, Math.Min(EegSimulator.Duration - WindowSec, Math.Round(base + delta)))
+            ApplySweepToView()
         End Sub
 
         Private Sub UpdateTimeLabel()
-            _lblTime.Text = $"{_viewStart:0} – {_viewStart + WindowSec:0} s  von {EegSimulator.Duration:0} s"
+            If _sweep Then
+                _lblTime.Text = $"Schreibt bei {_pageStart + _sweepPos:0.0} s  von {EegSimulator.Duration:0} s"
+            Else
+                _lblTime.Text = $"{_viewStart:0} – {_viewStart + WindowSec:0} s  von {EegSimulator.Duration:0} s"
+            End If
         End Sub
 
         Private Sub ShowInfo()

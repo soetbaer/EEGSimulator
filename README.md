@@ -30,7 +30,7 @@ Weil die EXE nicht signiert ist, zeigt Windows beim ersten Start eventuell den H
 - Ein Klick auf einen **Kanalnamen** wählt den Kanal für die Frequenz-Ansicht.
 - Die rechte Leiste hat drei Reiter: **Einstellungen** (Filter, Amplitude, Anzeige), **Impedanzen** und **Signal**. Die Lektionen öffnen jeweils den passenden Reiter.
 - Im **Kopfschema** (Reiter „Impedanzen“) ändert ein Klick auf eine Elektrode deren Impedanz (Rechtsklick: zurück). Per Tastatur: Pfeiltasten wählen die Elektrode, `+` und `−` ändern den Wert.
-- **Abspielen** lässt das EEG wie am Gerät laufen. Tastatur:
+- **Abspielen** startet die Schreiblinie: Die Seite bleibt stehen, die Linie läuft von links nach rechts und schreibt die nächste Seite über die alte, wie am EEG-Gerät. Tastatur:
   - `P` startet und stoppt die Wiedergabe.
   - `←` / `→` blättern um 10 s zurück bzw. vor.
 
