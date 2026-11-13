@@ -85,7 +85,13 @@ Die Texte und die Simulation wurden gegen öffentlich zugängliche Leitlinien un
 | Aussage in der Anwendung | Grundlage |
 |---|---|
 | LowCut höchstens 0,5 Hz (TC 0,3 s), HiCut mindestens 70 Hz, Empfindlichkeit 5–10 µV/mm | DGKN, Empfehlungen für die Durchführung von EEG-Ableitungen bei Erwachsenen (Fassung 2024) |
-| Bei Kindern meist 10 µV/mm, bei niedriger Amplitude 7 µV/mm | DGKN, Empfehlungen für EEG-Ableitungen bei Kindern |
+| Bei Kindern dieselben Geräte- und Darstellungseinstellungen wie bei Erwachsenen; Widerstände wiederholt prüfen; bei Neugeborenen unter 10 kΩ | DGKN, Empfehlungen für EEG-Ableitungen bei Kindern (Fassung Oktober 2024, im Volltext geprüft) |
+| Anordnung rechts über links, anterior über posterior; EKG während der gesamten Ableitung; mindestens 18 Kanäle | DGKN, Empfehlung zu EEG-Ableiteprogrammen (Fassung Oktober 2024, im Volltext geprüft) |
+| Standard 70 µV/cm, untere Grenzfrequenz 0,5–1 Hz, obere 70 Hz; 50-Hz-Filter bei Standard-Ableitung nicht routinemäßig (verdeckt Elektroden- und Kabeldefekte); Impedanz ≤ 5 kΩ, in Ausnahmen bis 10 kΩ, möglichst gleichmäßig; Filter und Verschaltung bei digitalen Geräten nachträglich änderbar | Baier, Kap. B-1.2 in Bischoff & Straube (Hrsg.), Leitlinien Klinische Neurophysiologie, Kohlhammer 2014 |
+| Alpha 8–13 Hz, üblicherweise um 30 µV; Beta über 13 bis 40 Hz, meist 15–25 Hz, frontozentral; Theta 4–7 Hz | Rosenow, Kap. B-1.3, ebenda |
+| Hauptkomponente epilepsietypischer Potentiale in der Regel negativ | Kap. B-1 (Befundung), ebenda |
+| Widerstände unter 100 Ω nicht zulässig (Abnahme der Potentialamplituden); Übergangswiderstände 1–10 kΩ | Kap. A-1 (EEG beim irreversiblen Hirnfunktionsausfall), ebenda |
+| Hautvorbereitung (entfetten, abrasive Paste sparsam, Kontaktgel), auf kleine Widerstandsdifferenz achten; typische 50-Hz-Störquellen | Merkblatt „Artefakte bei evozierten Potentialen“ (H. Krase) |
 | LowCut höchstens 1 Hz (TC mindestens 0,16 s), HiCut mindestens 70 Hz; Netzfilter nur, wenn andere Maßnahmen versagen, weil er Spikes verändern kann | ACNS Guideline 1: Minimum Technical Requirements for Performing Clinical EEG (2016) |
 | Spike: 20 bis unter 70 ms; Frequenzbänder | IFCN-Glossar (Kane et al., Clin Neurophysiol Pract 2017) |
 | Polarität „negativ nach oben“; Phasenumkehr an der gemeinsamen Elektrode | Beniczky & Schomer, Epileptic Disord 2020; Lehrbuchstandard |
@@ -117,4 +123,5 @@ Grenzwerte im Kopfschema: grün 1–5 kΩ, gelb bis 10 kΩ, rot über 10 kΩ, bl
 
 - Die Flankensteilheit der Filter ist geräteabhängig. Hier: LowCut 6 dB/Oktave (wie ein RC-Glied), HiCut 12 dB/Oktave.
 - Die Signale sind synthetisch. Amplituden und Verteilung sind typisch gewählt, bilden aber keinen einzelnen Patienten ab.
+- Gezeigt wird nur ein Ausschnitt einer Längsreihe (parasagittale Ketten rechts und links plus EKG), keine vollständige Montage mit mindestens 18 Kanälen.
 - Die Balken „So viel kommt durch“ werden am simulierten Baustein gemessen (Effektivwert, bei Spikes, Blinzeln und EKG die Spitzenhöhe).

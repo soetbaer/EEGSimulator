@@ -27,6 +27,17 @@ Namespace UI
         Public Property ShowRemoved As Boolean
         Public Property SelectedChannel As Integer = 3
 
+        ''' <summary>
+        ''' Reihenfolge der Kanäle von oben nach unten (Kanalindex je Zeile).
+        ''' DGKN-Empfehlung zu Ableiteprogrammen: rechts über links, anterior über posterior, EKG zuletzt.
+        ''' </summary>
+        Public Property DisplayOrder As Integer() = {4, 5, 6, 7, 0, 1, 2, 3, 8}
+
+        Private Function RowOf(channel As Integer) As Integer
+            Dim r = Array.IndexOf(DisplayOrder, channel)
+            Return If(r < 0, channel, r)
+        End Function
+
         Public Sub New()
             SetStyle(ControlStyles.AllPaintingInWmPaint Or ControlStyles.OptimizedDoubleBuffer Or
                      ControlStyles.UserPaint Or ControlStyles.ResizeRedraw, True)
@@ -60,7 +71,7 @@ Namespace UI
             Dim plot = PlotRect()
             Dim rowH = plot.Height / _filtered.Length
             Dim row = CInt(Math.Floor((e.Y - plot.Top) / rowH))
-            If row >= 0 AndAlso row < _filtered.Length Then RaiseEvent ChannelClicked(Me, row)
+            If row >= 0 AndAlso row < _filtered.Length Then RaiseEvent ChannelClicked(Me, DisplayOrder(row))
         End Sub
 
         Protected Overrides Sub OnPaint(e As PaintEventArgs)
@@ -81,7 +92,7 @@ Namespace UI
             End Using
             If SelectedChannel >= 0 AndAlso SelectedChannel < nCh Then
                 Using b As New SolidBrush(Theme.Selected)
-                    g.FillRectangle(b, 0, plot.Top + rowH * SelectedChannel, Width, rowH)
+                    g.FillRectangle(b, 0, plot.Top + rowH * RowOf(SelectedChannel), Width, rowH)
                 End Using
             End If
 
@@ -108,7 +119,7 @@ Namespace UI
 
             ' Kanalnamen
             For c = 0 To nCh - 1
-                Dim r As New Rectangle(CInt(10 * Sc), CInt(plot.Top + rowH * c), CInt(plot.Left - 14 * Sc), CInt(rowH))
+                Dim r As New Rectangle(CInt(10 * Sc), CInt(plot.Top + rowH * RowOf(c)), CInt(plot.Left - 14 * Sc), CInt(rowH))
                 Dim txt = _names(c)
                 Dim col = If(c = SelectedChannel, Theme.AccentDark, Theme.TextDark)
                 If c = EcgChannel Then
@@ -134,7 +145,7 @@ Namespace UI
                   pRem As New Pen(Color.FromArgb(215, Theme.Removed), 1.15F * Sc)
                 pRaw.LineJoin = LineJoin.Round : pTrace.LineJoin = LineJoin.Round : pRem.LineJoin = LineJoin.Round
                 For c = 0 To nCh - 1
-                    Dim cy = plot.Top + rowH * (c + 0.5F)
+                    Dim cy = plot.Top + rowH * (RowOf(c) + 0.5F)
                     Dim pxPerUv = pxPerMm / CSng(Sensitivity)
                     If c = EcgChannel Then pxPerUv /= CSng(EcgScaleDivisor)
                     If ShowRaw Then DrawTrace(g, _raw(c), Nothing, plot, cy, pxPerUv, pRaw)
@@ -146,7 +157,7 @@ Namespace UI
             ' erkannte Herzschläge (EKG-Filter)
             If _peaks IsNot Nothing AndAlso EcgChannel >= 0 Then
                 Using b As New SolidBrush(Theme.ColEcg)
-                    Dim yTop = plot.Top + rowH * EcgChannel + 3 * Sc
+                    Dim yTop = plot.Top + rowH * RowOf(EcgChannel) + 3 * Sc
                     Dim s = 5 * Sc
                     For Each p In _peaks
                         Dim t = p / _fs

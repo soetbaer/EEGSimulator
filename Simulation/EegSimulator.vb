@@ -154,7 +154,7 @@ Namespace Simulation
                 alL(i) = e * Math.Sin(ph)
                 alR(i) = e * Math.Sin(ph + 0.4)
             Next
-            _parts(SignalPart.Alpha) = Spread(SignalPart.Alpha, alL, alR, 50)
+            _parts(SignalPart.Alpha) = Spread(SignalPart.Alpha, alL, alR, 40)   ' Lehrbuch: Alpha-Amplitude üblicherweise um 30 µV, stark schwankend
 
             ' ---------- Beta: 18–23 Hz, niedrig ----------
             Dim beL = Oscillation(rng, 18.0, 1.0, 1.0, False)

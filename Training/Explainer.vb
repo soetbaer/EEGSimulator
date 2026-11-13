@@ -60,7 +60,7 @@ Namespace Training
                 Dim f = s.LowCutHz
                 list.Add(InfoBlock.Para($"LowCut {Hz(f)} Hz (TC {Tc(s.LowCutTc)} s): Wellen, die langsamer sind als etwa {Hz(f)} Wellen pro Sekunde, werden abgeschwächt – je langsamer, desto stärker."))
                 If f > 1.0 Then
-                    list.Add(InfoBlock.Warning("Diese Einstellung liegt über den Empfehlungen für die Routine-Ableitung (DGKN: höchstens 0,5 Hz ≈ TC 0,3 s; ACNS: höchstens 1 Hz). Nur vorübergehend zur Betrachtung verwenden und dokumentieren."))
+                    list.Add(InfoBlock.Warning("Diese Einstellung liegt über den Empfehlungen für die Routine-Ableitung (DGKN: höchstens 0,5 Hz ≈ TC 0,3 s; Lehrbuch und ACNS: höchstens 1 Hz). Standard-Filter allenfalls vorübergehend verändern und dokumentieren."))
                 End If
                 If f >= 1.5 AndAlso (has(SignalPart.Delta) OrElse has(SignalPart.Blinks)) Then
                     list.Add(InfoBlock.Warning("Langsame Hirnwellen (Delta) werden deutlich kleiner – ein Herdbefund kann übersehen werden. Das Augenblinzeln wird schmaler und bekommt einen Gegenschwinger in die andere Richtung."))
@@ -119,7 +119,7 @@ Namespace Training
 
             ' ---------- 50 Hz ----------
             If s.Notch Then
-                list.Add(InfoBlock.Para("50-Hz-Filter ist AN: Ein schmaler Bereich um 50 Hz wird gezielt herausgeschnitten, alles andere bleibt fast unverändert."))
+                list.Add(InfoBlock.Para("50-Hz-Filter ist AN: Ein schmaler Bereich um 50 Hz wird gezielt herausgeschnitten, alles andere bleibt fast unverändert. Achtung: Bei einer Standard-Ableitung ist der routinemäßige Einsatz nicht zulässig, weil er Elektroden- und Kabeldefekte verdeckt."))
             End If
             If has(SignalPart.Hum) Then
                 Dim chName = EegSimulator.ChannelNames(worstCh)

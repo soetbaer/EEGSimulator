@@ -34,8 +34,9 @@ Namespace Training
                 .Preset = Preset(0.3, 70, False, False, 7, 3, False, False, SignalPart.Alpha, SignalPart.Beta),
                 .Blocks = New List(Of InfoBlock) From {
                     InfoBlock.Para("Das EEG misst winzige elektrische Spannungen der Hirnrinde – nur wenige millionstel Volt (Mikrovolt, µV)."),
-                    InfoBlock.Para("Zum Vergleich: Eine AA-Batterie hat 1,5 Volt. Das ist rund 30.000-mal mehr als eine typische Alpha-Welle. Deshalb sind EEG-Signale so empfindlich für Störungen."),
+                    InfoBlock.Para("Zum Vergleich: Eine AA-Batterie hat 1,5 Volt. Das ist rund 50.000-mal mehr als eine typische Alpha-Welle von etwa 30 µV. Deshalb sind EEG-Signale so empfindlich für Störungen."),
                     InfoBlock.Para("Jede Kurve ist ein Kanal: der Spannungsunterschied zwischen zwei Elektroden (z. B. P3-O1). Hier sehen Sie ein ruhiges Wach-EEG mit geschlossenen Augen. Über dem Hinterkopf (P3-O1, P4-O2) erkennt man den Alpha-Rhythmus mit etwa 10 Wellen pro Sekunde."),
+                    InfoBlock.Bullet("Gezeigt wird ein Ausschnitt aus einer Längsreihe: die rechte Elektrodenkette oben, die linke darunter (Empfehlung der DGKN: rechts über links, vorne über hinten), dazu das EKG, das bei jeder Ableitung mitläuft. Eine vollständige Montage hat mindestens 18 Kanäle."),
                     InfoBlock.Bullet("Die kräftigen senkrechten Linien markieren je 1 Sekunde."),
                     InfoBlock.Bullet("Wie am echten Gerät gilt die EEG-Konvention 'negativ nach oben': Ist die erste Elektrode eines Kanals negativer als die zweite, schlägt die Kurve nach oben aus."),
                     InfoBlock.Bullet("Unten sehen Sie die Frequenz-Ansicht: Sie zeigt, wie viel von jeder Wellen-Geschwindigkeit im Signal steckt."),
@@ -52,7 +53,7 @@ Namespace Training
                     InfoBlock.Bullet("Delta (unter 4 Hz): sehr langsam – z. B. Tiefschlaf oder an einer krankhaften Stelle (Herd)."),
                     InfoBlock.Bullet("Theta (4 bis unter 8 Hz): z. B. bei Müdigkeit; bei Kindern je nach Alter normal."),
                     InfoBlock.Bullet("Alpha (8–13 Hz): entspannt wach mit geschlossenen Augen."),
-                    InfoBlock.Bullet("Beta (über 13 bis 30 Hz): schnelle, meist niedrige Wellen, frontal betont; verstärkt z. B. durch Medikamente (Benzodiazepine)."),
+                    InfoBlock.Bullet("Beta (über 13 Hz, je nach Quelle bis 30 oder 40 Hz; meist 15–25 Hz): schnelle, niedrige Wellen, frontozentral betont; verstärkt z. B. durch Medikamente (Benzodiazepine)."),
                     InfoBlock.Tip("Bildhaft gesprochen: Langsame Wellen sind wie lange Meereswellen, schnelle wie das kleine Gekräusel auf dem Wasser. Ein Filter ist ein Sieb, das bestimmte Wellen zurückhält."),
                     InfoBlock.TryIt("Schalten Sie rechts unter 'Signal-Bausteine' Delta, Theta, Alpha und Beta einzeln aus und wieder an. Beobachten Sie, wo in der Frequenz-Ansicht die farbigen Balken wachsen und schrumpfen.")
                 }})
@@ -115,7 +116,8 @@ Namespace Training
                     InfoBlock.Para("Unser Stromnetz schwingt 50-mal pro Sekunde (50 Hz) und streut überall ein wenig in die Ableitung ein. Normalerweise unterdrückt der Verstärker diese Störung, weil sie an beiden Elektroden eines Kanals gleich groß ist. Liegt aber eine Elektrode schlecht an (hoher oder ungleicher Übergangswiderstand = Impedanz), gelingt das nicht mehr: Die Kurve wird dick und 'pelzig'."),
                     InfoBlock.Para("Hier hat die Elektrode P4 einen schlechten Kontakt (15 kΩ, siehe Kopfschema rechts): Betroffen sind C4-P4 und P4-O2 – also genau die beiden Kanäle, in denen P4 vorkommt. Mehr zu Impedanzen in der nächsten Lektion."),
                     InfoBlock.Para("Der 50-Hz-Filter ist ein 'Kerbfilter': Er schneidet gezielt einen schmalen Bereich um 50 Hz heraus und lässt den Rest in Ruhe. Der normale HiCut von 70 Hz hilft hier kaum – 50 Hz liegt ja noch darunter!"),
-                    InfoBlock.Tip("Erst die Ursache beheben: Impedanz prüfen, Elektrode nachpräparieren, Kabel und Geräte in der Nähe kontrollieren. Der 50-Hz-Filter soll nicht routinemäßig eingeschaltet sein, sondern nur, wenn andere Maßnahmen nicht helfen – er kann steile Potentiale (Spikes) leicht verändern."),
+                    InfoBlock.Tip("Erst die Ursache beheben: Impedanz prüfen, Elektrode nachpräparieren, Kabelführung ändern, Störquellen suchen (Motor der Liege, Leuchtstofflampen, Geräte und Monitore in Patientennähe, defekter Schutzleiter)."),
+                    InfoBlock.Warning("Der 50-Hz-Filter darf bei einer Standard-Ableitung nicht routinemäßig eingeschaltet sein: Er verdeckt Elektroden- und Kabeldefekte. Zulässig ist er allenfalls vorübergehend, z. B. auf der Intensivstation, wenn notwendige Geräte nicht abgeschaltet werden können."),
                     InfoBlock.TryIt("Schalten Sie den 50-Hz-Filter ein und aus. In der Frequenz-Ansicht sehen Sie die schmale Kerbe bei 50 Hz.")
                 }})
 
@@ -128,7 +130,7 @@ Namespace Training
                 .Blocks = New List(Of InfoBlock) From {
                     InfoBlock.Para("Die Impedanz (Übergangswiderstand) beschreibt, wie gut der elektrische Kontakt zwischen Elektrode und Kopfhaut ist. Sie wird in Kiloohm (kΩ) gemessen. Niedrig heißt: guter Kontakt. Hornschicht, Hautfett, Haare unter der Elektrode oder eingetrocknete Paste erhöhen sie."),
                     InfoBlock.Para("Rechts sehen Sie jetzt das Kopfschema mit den Impedanzen – wie bei der Impedanzmessung am Gerät. C3 hat hier 25 kΩ (rot), alle anderen Elektroden 2–3 kΩ."),
-                    InfoBlock.Tip("Empfehlung der DGKN: Die Impedanzen sollen 1 kΩ nicht unter- und 10 kΩ nicht überschreiten und MÖGLICHST GLEICH sein. Sie werden vor und nach der Ableitung gemessen und dokumentiert. (Die US-Leitlinie der ACNS nennt als Ziel höchstens 5 kΩ.)"),
+                    InfoBlock.Tip("Empfehlung: höchstens 5 kΩ, in Ausnahmefällen bis 10 kΩ, nicht unter 1 kΩ – und MÖGLICHST GLEICH, weil stark unterschiedliche Übergangswiderstände die Gleichtaktunterdrückung beeinträchtigen. Die Impedanzen werden zu Beginn und am Ende der Ableitung dokumentiert, bei Kindern auch zwischendurch wiederholt geprüft."),
                     InfoBlock.Para("Warum ist 'gleich' so wichtig? Der EEG-Verstärker misst immer den UNTERSCHIED zwischen zwei Elektroden. Die 50-Hz-Störung aus dem Stromnetz kommt an beiden Elektroden an. Ist der Kontakt beider Elektroden gleich gut, ist die Störung an beiden gleich groß – und fällt beim Abziehen heraus (Gleichtaktunterdrückung)."),
                     InfoBlock.Para("Wie bei einer Balkenwaage: Liegt auf beiden Seiten dasselbe Gewicht, bleibt sie im Gleichgewicht. Hat aber eine Elektrode 2 kΩ und die andere 25 kΩ, kommt die Störung ungleich stark an – der Unterschied bleibt als Netzbrumm in der Kurve stehen."),
                     InfoBlock.Para("Deshalb ist der Brumm genau in den zwei Kanälen zu sehen, in denen C3 vorkommt: F3-C3 und C3-P3. (Die zusätzlichen Sprünge und die unruhige Grundlinie besprechen wir in der nächsten Lektion.)"),
@@ -147,9 +149,9 @@ Namespace Training
                     InfoBlock.Bullet("Elektroden-Pops: plötzliche, sehr steile Sprünge, die langsam zurücklaufen. Sie entstehen, wenn sich der Kontakt kurz ändert."),
                     InfoBlock.Warning("Verwechslungsgefahr! Ein Pop kann wie ein Spike aussehen, die langsame Unruhe wie ein Herdbefund. Das Erkennungszeichen: Die Störung betrifft nur EINE Elektrode. In den beiden Nachbarkanälen erscheint sie spiegelbildlich (F4 ist einmal zweite, einmal erste Elektrode), in allen anderen Kanälen ist nichts zu sehen. Ein echter Spike hat ein 'Feld': Er ist abgeschwächt auch in der Umgebung sichtbar (vergleichen Sie Lektion 6)."),
                     InfoBlock.Para("Was NICHT passiert: Das EEG wird durch hohe Impedanz nicht kleiner. Moderne Verstärker haben einen so hohen Eingangswiderstand (über 100 MΩ), dass selbst bei 50 kΩ weniger als 0,1 % der Spannung verloren gehen. Auch das reine Widerstandsrauschen ist winzig (unter 0,5 µV). Das 'Rauschen' kommt vom instabilen Kontakt und von eingestreuten Störungen."),
-                    InfoBlock.Para("Zu niedrig ist auch falsch: Verläuft Elektrodenpaste zwischen zwei Nachbarelektroden, entsteht eine leitende Gelbrücke. Beide Elektroden messen dann fast dasselbe, und der Kanal dazwischen wird flach."),
+                    InfoBlock.Para("Zu niedrig ist auch falsch: Verläuft Elektrodenpaste zwischen zwei Nachbarelektroden, entsteht eine leitende Gelbrücke. Beide Elektroden messen dann fast dasselbe, und der Kanal dazwischen wird flach. Widerstände unter 100 Ω sind nicht zulässig, weil die Potentiale dann erheblich kleiner werden."),
                     InfoBlock.TryIt("1. Versuchen Sie, die Störung wegzufiltern (LowCut, HiCut, 50-Hz-Filter): Es gelingt nicht, ohne das EEG zu verändern. 2. Stellen Sie F4 auf 2 kΩ: sofort sauber. 3. Schalten Sie 'Gelbrücke F3–C3' ein und sehen Sie sich den Kanal F3-C3 an."),
-                    InfoBlock.Tip("Impedanzprobleme lassen sich nicht wegfiltern. Elektrode neu setzen: Haare zur Seite, Haut vorbereiten, Paste nachfüllen, Sitz prüfen – und danach erneut messen.")
+                    InfoBlock.Tip("Impedanzprobleme lassen sich nicht wegfiltern. Elektrode neu setzen: Haare zur Seite, Haut mit Alkohol entfetten, abrasive Reinigungspaste sparsam verwenden, Elektrode mit ausreichend Kontaktgel oder Paste aufsetzen und fixieren – danach erneut messen und auf kleine Unterschiede zwischen den Elektroden achten.")
                 }})
 
             ' 10 --------------------------------------------------------------
@@ -189,12 +191,13 @@ Namespace Training
                 .Blocks = New List(Of InfoBlock) From {
                     InfoBlock.Para("Im Alltag kommen Störungen selten allein. Hier sind fast alle typischen Artefakte gleichzeitig eingeschaltet – und alle Filter stehen auf AUS."),
                     InfoBlock.Para("Empfehlungen der DGKN für das Routine-EEG von Erwachsenen:"),
-                    InfoBlock.Bullet("Impedanzen: zwischen 1 und 10 kΩ, möglichst gleich"),
+                    InfoBlock.Bullet("Impedanzen: höchstens 5 kΩ (Ausnahme bis 10 kΩ), nicht unter 1 kΩ, möglichst gleich"),
                     InfoBlock.Bullet("LowCut: höchstens 0,5 Hz, entspricht TC 0,3 s"),
                     InfoBlock.Bullet("HiCut: mindestens 70 Hz"),
-                    InfoBlock.Bullet("50-Hz-Filter und EKG-Filter: nur bei Bedarf"),
-                    InfoBlock.Bullet("Amplitude: 5–10 µV/mm, üblich 7 µV/mm (bei Kindern wegen der höheren Amplituden meist 10 µV/mm)"),
-                    InfoBlock.Para("Bei digitalen Geräten verändern die Filter in der Regel nur die Anzeige – die Aufzeichnung selbst bleibt erhalten und kann später anders gefiltert betrachtet werden. Bitte immer an die Standards Ihres Labors halten."),
+                    InfoBlock.Bullet("50-Hz-Filter: nicht routinemäßig, nur vorübergehend im Ausnahmefall"),
+                    InfoBlock.Bullet("EKG: wird immer mit aufgezeichnet; EKG-Filter nur bei Bedarf"),
+                    InfoBlock.Bullet("Amplitude: 5–10 µV/mm, üblich 7 µV/mm (= 70 µV/cm). Bei Kindern gelten laut DGKN dieselben Geräte- und Darstellungseinstellungen wie bei Erwachsenen."),
+                    InfoBlock.Para("Bei digitalen Geräten werden Filter, Verschaltung, Amplitude und Zeitachse rechnerisch angewendet und können bei der Auswertung nachträglich geändert werden. Bitte immer an die Standards Ihres Labors halten."),
                     InfoBlock.TryIt("Beheben Sie zuerst, was sich an der Ursache beheben lässt (Kopfschema!). Finden Sie dann die beste Einstellung, sodass Alpha gut erkennbar ist und die Störungen möglichst verschwinden. Prüfen Sie danach mit 'Rohsignal grau unterlegen', was Sie verändert haben."),
                     InfoBlock.Tip("Goldene Regel: So wenig filtern wie möglich, so viel wie nötig. Zuerst die Ursache beheben (Elektroden, Entspannung, Raum) – und jede Filteränderung dokumentieren.")
                 }})
