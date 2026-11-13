@@ -38,7 +38,7 @@ Namespace UI
         ''' <summary>Position der Schreiblinie innerhalb der Seite (s).</summary>
         Public Property SweepPos As Double
         ''' <summary>Lücke vor der Schreiblinie, in der die alte Kurve schon gelöscht ist (s).</summary>
-        Private Const SweepGap As Double = 0.3
+        Private Const SweepGap As Double = 0.1
 
         ''' <summary>Ein Kurvenabschnitt: Zeit "From" bis "To", gezeichnet relativ zum Seitenanfang "Origin".</summary>
         Private Structure Segment
