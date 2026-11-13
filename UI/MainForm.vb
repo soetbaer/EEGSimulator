@@ -51,7 +51,8 @@ Namespace UI
         Private ReadOnly _partToggles As New Dictionary(Of SignalPart, ToggleSwitch)
         Private ReadOnly _imp As New ImpedanceView()
         Private ReadOnly _tglBridge As New ToggleSwitch()
-        Private _rightFlow As FlowLayoutPanel
+        Private ReadOnly _rightPages As New List(Of FlowLayoutPanel)
+        Private ReadOnly _rightTabs As New List(Of Button)
         Private _impResetButton As Button
 
         Private _btnPlay As Button
@@ -207,8 +208,26 @@ Namespace UI
             Dim right As New Panel With {.Dock = DockStyle.Right, .Width = 316, .BackColor = Theme.Card}
             Dim border As New Panel With {.Dock = DockStyle.Left, .Width = 1, .BackColor = Theme.Border}
 
-            Dim flow As New FlowLayoutPanel With {.Dock = DockStyle.Fill, .FlowDirection = FlowDirection.TopDown, .WrapContents = False,
-                                                  .AutoScroll = True, .Padding = New Padding(18, 8, 8, 16), .BackColor = Theme.Card}
+            ' Drei Reiter statt einer langen Liste: so passt jeder Bereich ohne Scrollen auf den Bildschirm
+            For i = 0 To 2
+                _rightPages.Add(New FlowLayoutPanel With {.Dock = DockStyle.Fill, .FlowDirection = FlowDirection.TopDown, .WrapContents = False,
+                                                         .AutoScroll = True, .Padding = New Padding(18, 0, 8, 16), .BackColor = Theme.Card, .Visible = (i = 0)})
+            Next
+            Dim tabBar As New FlowLayoutPanel With {.Dock = DockStyle.Top, .Height = 52, .FlowDirection = FlowDirection.LeftToRight, .WrapContents = False,
+                                                    .Padding = New Padding(18, 12, 0, 0), .BackColor = Theme.Card}
+            Dim tabNames = {"Einstellungen", "Impedanzen", "Signal"}
+            Dim tabWidths = {104, 92, 76}
+            For i = 0 To 2
+                Dim idx = i
+                Dim tb = MakeButton(tabNames(i), Theme.AccentLight, Theme.AccentDark)
+                tb.Size = New Size(tabWidths(i), 32)
+                tb.Font = Theme.FontSmallBold
+                tb.Margin = New Padding(0)
+                AddHandler tb.Click, Sub() ShowRightTab(idx)
+                _rightTabs.Add(tb)
+                tabBar.Controls.Add(tb)
+            Next
+            Dim flow = _rightPages(0)
 
             ' ---- Filter ----
             AddSection(flow, "Filter")
@@ -263,8 +282,11 @@ Namespace UI
             SetupToggle(flow, _tglRemoved, "Entfernten Anteil rot zeigen", Theme.Removed)
 
             ' ---- Impedanzen ----
+            flow = _rightPages(1)
             AddSection(flow, "Impedanzen der Elektroden")
-            AddHint(flow, "Werte in kΩ. Klick auf eine Elektrode: Wert erhöhen. Rechtsklick: verringern.")
+            flow.Controls.Add(New Label With {.Text = "Werte in kΩ. Klick: erhöhen, Rechtsklick: verringern. Tastatur: Pfeiltasten wählen die Elektrode, + und − ändern den Wert.",
+                                              .Font = Theme.FontSmall, .ForeColor = Theme.TextMuted, .AutoSize = False,
+                                              .Size = New Size(ControlWidth, 52), .Margin = New Padding(0, 0, 0, 2)})
             _imp.Size = New Size(ControlWidth, 300)
             _imp.Margin = New Padding(0, 0, 0, 4)
             flow.Controls.Add(_imp)
@@ -275,7 +297,6 @@ Namespace UI
             btnImpReset.Font = Theme.FontSmallBold
             btnImpReset.Margin = New Padding(0, 6, 0, 0)
             _impResetButton = btnImpReset
-            _rightFlow = flow
             flow.Controls.Add(btnImpReset)
             AddHandler btnImpReset.Click, Sub()
                                               _settings.Impedances = CType(EegSimulator.DefaultImpedances.Clone(), Double())
@@ -286,6 +307,7 @@ Namespace UI
             AddHandler _tglBridge.CheckedChanged, AddressOf OnControlChanged
 
             ' ---- Bausteine ----
+            flow = _rightPages(2)
             AddSection(flow, "Signal-Bausteine")
             AddHint(flow, "Was steckt im simulierten EEG? Einzeln ein- und ausschalten.")
             AddSubLabel(flow, "Hirnaktivität")
@@ -305,9 +327,12 @@ Namespace UI
             AddHandler _tglRaw.CheckedChanged, AddressOf OnControlChanged
             AddHandler _tglRemoved.CheckedChanged, AddressOf OnControlChanged
 
-            right.Controls.Add(flow)
+            For Each pg In _rightPages
+                right.Controls.Add(pg)
+            Next
+            right.Controls.Add(tabBar)
             right.Controls.Add(border)
-            flow.BringToFront()
+            ShowRightTab(0)
             Return right
         End Function
 
@@ -451,6 +476,19 @@ Namespace UI
             End If
         End Sub
 
+        ''' <summary>Zeigt einen Reiter der rechten Leiste: 0 = Einstellungen, 1 = Impedanzen, 2 = Signal.</summary>
+        Private Sub ShowRightTab(index As Integer)
+            For i = 0 To _rightPages.Count - 1
+                _rightPages(i).Visible = (i = index)
+                Dim sel = (i = index)
+                _rightTabs(i).BackColor = If(sel, Theme.Accent, Theme.AccentLight)
+                _rightTabs(i).ForeColor = If(sel, Color.White, Theme.AccentDark)
+                _rightTabs(i).FlatAppearance.MouseOverBackColor = If(sel, Theme.Accent, Theme.Blend(Theme.AccentLight, Theme.Accent, 0.15))
+                _rightTabs(i).AccessibleDescription = If(sel, "ausgewählt", "")
+            Next
+            _rightPages(index).BringToFront()
+        End Sub
+
         Private Sub ApplyLesson(index As Integer)
             If index < 0 OrElse index >= _lessons.Count Then Return
             _lessonIndex = index
@@ -464,10 +502,7 @@ Namespace UI
             ApplySettingsToControls()
             UpdateInfo(resetScroll:=True)
             ' rechte Leiste passend zur Lektion positionieren
-            If _rightFlow IsNot Nothing Then
-                _rightFlow.AutoScrollPosition = New Point(0, 0)
-                If _lessons(index).ShowImpedancePanel Then _rightFlow.ScrollControlIntoView(_impResetButton)
-            End If
+            ShowRightTab(_lessons(index).RightTab)
         End Sub
 
         Private Sub ApplySettingsToControls()
@@ -671,7 +706,7 @@ Namespace UI
 
         Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
             ' Leertaste = Abspielen/Pause, Bild auf/ab = blättern (wenn kein Eingabefeld aktiv ist)
-            If TypeOf ActiveControl Is ComboBox Then Return MyBase.ProcessCmdKey(msg, keyData)
+            If TypeOf ActiveControl Is ComboBox OrElse TypeOf ActiveControl Is ImpedanceView Then Return MyBase.ProcessCmdKey(msg, keyData)
             Select Case keyData
                 Case Keys.PageDown, Keys.Right : MoveView(WindowSec) : Return True
                 Case Keys.PageUp, Keys.Left : MoveView(-WindowSec) : Return True

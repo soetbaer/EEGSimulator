@@ -9,8 +9,8 @@ Namespace Training
         Public Property Title As String
         Public Property Blocks As New List(Of InfoBlock)
         Public Property Preset As SimSettings
-        ''' <summary>Lektion arbeitet mit dem Kopfschema: rechte Leiste dorthin scrollen.</summary>
-        Public Property ShowImpedancePanel As Boolean
+        ''' <summary>Reiter der rechten Leiste, den die Lektion braucht: 0 = Einstellungen, 1 = Impedanzen, 2 = Signal.</summary>
+        Public Property RightTab As Integer
     End Class
 
     ''' <summary>Die geführten Lektionen. Texte bewusst ohne Formeln und Fachchinesisch.</summary>
@@ -47,6 +47,7 @@ Namespace Training
             ' 2 ---------------------------------------------------------------
             L.Add(New Lesson With {
                 .Title = "Langsam und schnell: die Frequenzbänder",
+                .RightTab = 2,
                 .Preset = Preset(0.3, 70, False, False, 7, 1, False, False, SignalPart.Alpha, SignalPart.Beta, SignalPart.Theta, SignalPart.Delta),
                 .Blocks = New List(Of InfoBlock) From {
                     InfoBlock.Para("Ein EEG ist immer eine Mischung aus Wellen unterschiedlicher Geschwindigkeit. Man teilt sie in Bänder ein:"),
@@ -55,7 +56,7 @@ Namespace Training
                     InfoBlock.Bullet("Alpha (8–13 Hz): entspannt wach mit geschlossenen Augen."),
                     InfoBlock.Bullet("Beta (über 13 Hz, je nach Quelle bis 30 oder 40 Hz; meist 15–25 Hz): schnelle, niedrige Wellen, frontozentral betont; verstärkt z. B. durch Medikamente (Benzodiazepine)."),
                     InfoBlock.Tip("Bildhaft gesprochen: Langsame Wellen sind wie lange Meereswellen, schnelle wie das kleine Gekräusel auf dem Wasser. Ein Filter ist ein Sieb, das bestimmte Wellen zurückhält."),
-                    InfoBlock.TryIt("Schalten Sie rechts unter 'Signal-Bausteine' Delta, Theta, Alpha und Beta einzeln aus und wieder an. Beobachten Sie, wo in der Frequenz-Ansicht die farbigen Balken wachsen und schrumpfen.")
+                    InfoBlock.TryIt("Schalten Sie rechts im Reiter 'Signal' Delta, Theta, Alpha und Beta einzeln aus und wieder an. Beobachten Sie, wo in der Frequenz-Ansicht die farbigen Balken wachsen und schrumpfen.")
                 }})
 
             ' 3 ---------------------------------------------------------------
@@ -125,11 +126,11 @@ Namespace Training
             ' 8 ---------------------------------------------------------------
             L.Add(New Lesson With {
                 .Title = "Impedanz: der Kontakt zur Kopfhaut",
-                .ShowImpedancePanel = True,
+                .RightTab = 1,
                 .Preset = Preset(0.3, 70, False, False, 7, 2, False, False, SignalPart.Alpha, SignalPart.Beta, SignalPart.Hum).WithImpedance("C3", 25),
                 .Blocks = New List(Of InfoBlock) From {
                     InfoBlock.Para("Die Impedanz (Übergangswiderstand) beschreibt, wie gut der elektrische Kontakt zwischen Elektrode und Kopfhaut ist. Sie wird in Kiloohm (kΩ) gemessen. Niedrig heißt: guter Kontakt. Hornschicht, Hautfett, Haare unter der Elektrode oder eingetrocknete Paste erhöhen sie."),
-                    InfoBlock.Para("Rechts sehen Sie jetzt das Kopfschema mit den Impedanzen – wie bei der Impedanzmessung am Gerät. C3 hat hier 25 kΩ (rot), alle anderen Elektroden 2–3 kΩ."),
+                    InfoBlock.Para("Rechts sehen Sie jetzt im Reiter 'Impedanzen' das Kopfschema – wie bei der Impedanzmessung am Gerät. C3 hat hier 25 kΩ (rot), alle anderen Elektroden 2–3 kΩ."),
                     InfoBlock.Tip("Empfehlung: höchstens 5 kΩ, in Ausnahmefällen bis 10 kΩ, nicht unter 1 kΩ – und MÖGLICHST GLEICH, weil stark unterschiedliche Übergangswiderstände die Gleichtaktunterdrückung beeinträchtigen. Die Impedanzen werden zu Beginn und am Ende der Ableitung dokumentiert, bei Kindern auch zwischendurch wiederholt geprüft."),
                     InfoBlock.Para("Warum ist 'gleich' so wichtig? Der EEG-Verstärker misst immer den UNTERSCHIED zwischen zwei Elektroden. Die 50-Hz-Störung aus dem Stromnetz kommt an beiden Elektroden an. Ist der Kontakt beider Elektroden gleich gut, ist die Störung an beiden gleich groß – und fällt beim Abziehen heraus (Gleichtaktunterdrückung)."),
                     InfoBlock.Para("Wie bei einer Balkenwaage: Liegt auf beiden Seiten dasselbe Gewicht, bleibt sie im Gleichgewicht. Hat aber eine Elektrode 2 kΩ und die andere 25 kΩ, kommt die Störung ungleich stark an – der Unterschied bleibt als Netzbrumm in der Kurve stehen."),
@@ -141,7 +142,7 @@ Namespace Training
             ' 9 ---------------------------------------------------------------
             L.Add(New Lesson With {
                 .Title = "Schlechte Impedanz verfälscht das EEG",
-                .ShowImpedancePanel = True,
+                .RightTab = 1,
                 .Preset = Preset(0.3, 70, False, False, 7, 5, False, False, SignalPart.Alpha, SignalPart.Beta).WithImpedance("F4", 50),
                 .Blocks = New List(Of InfoBlock) From {
                     InfoBlock.Para("Netzbrumm ist nicht die einzige Folge. Hier ist die Netzeinstreuung ausgeschaltet, und F4 hat 50 kΩ – die Elektrode sitzt locker. Schauen Sie auf Fp2-F4 und F4-C4:"),
@@ -150,7 +151,7 @@ Namespace Training
                     InfoBlock.Warning("Verwechslungsgefahr! Ein Pop kann wie ein Spike aussehen, die langsame Unruhe wie ein Herdbefund. Das Erkennungszeichen: Die Störung betrifft nur EINE Elektrode. In den beiden Nachbarkanälen erscheint sie spiegelbildlich (F4 ist einmal zweite, einmal erste Elektrode), in allen anderen Kanälen ist nichts zu sehen. Ein echter Spike hat ein 'Feld': Er ist abgeschwächt auch in der Umgebung sichtbar (vergleichen Sie Lektion 6)."),
                     InfoBlock.Para("Was NICHT passiert: Das EEG wird durch hohe Impedanz nicht kleiner. Moderne Verstärker haben einen so hohen Eingangswiderstand (über 100 MΩ), dass selbst bei 50 kΩ weniger als 0,1 % der Spannung verloren gehen. Auch das reine Widerstandsrauschen ist winzig (unter 0,5 µV). Das 'Rauschen' kommt vom instabilen Kontakt und von eingestreuten Störungen."),
                     InfoBlock.Para("Zu niedrig ist auch falsch: Verläuft Elektrodenpaste zwischen zwei Nachbarelektroden, entsteht eine leitende Gelbrücke. Beide Elektroden messen dann fast dasselbe, und der Kanal dazwischen wird flach. Widerstände unter 100 Ω sind nicht zulässig, weil die Potentiale dann erheblich kleiner werden."),
-                    InfoBlock.TryIt("1. Versuchen Sie, die Störung wegzufiltern (LowCut, HiCut, 50-Hz-Filter): Es gelingt nicht, ohne das EEG zu verändern. 2. Stellen Sie F4 auf 2 kΩ: sofort sauber. 3. Schalten Sie 'Gelbrücke F3–C3' ein und sehen Sie sich den Kanal F3-C3 an."),
+                    InfoBlock.TryIt("1. Versuchen Sie, die Störung wegzufiltern (LowCut, HiCut, 50-Hz-Filter): Es gelingt nicht, ohne das EEG zu verändern. 2. Stellen Sie F4 auf 2 kΩ: sofort sauber. 3. Schalten Sie 'Gelbrücke F3–C3' ein und sehen Sie sich den Kanal F3-C3 an. (Die Filter finden Sie im Reiter 'Einstellungen'.)"),
                     InfoBlock.Tip("Impedanzprobleme lassen sich nicht wegfiltern. Elektrode neu setzen: Haare zur Seite, Haut mit Alkohol entfetten, abrasive Reinigungspaste sparsam verwenden, Elektrode mit ausreichend Kontaktgel oder Paste aufsetzen und fixieren – danach erneut messen und auf kleine Unterschiede zwischen den Elektroden achten.")
                 }})
 
@@ -166,7 +167,7 @@ Namespace Training
                     InfoBlock.Bullet("2. Für jeden EEG-Kanal wird ausgerechnet, wie das Artefakt dort im Durchschnitt aussieht. Beim Mitteln vieler Herzschläge heben sich die echten Hirnwellen gegenseitig auf – übrig bleibt die typische Form des Artefakts (die Schablone)."),
                     InfoBlock.Bullet("3. Diese Schablone wird bei jedem Herzschlag abgezogen."),
                     InfoBlock.Tip("Voraussetzung ist ein sauberer EKG-Kanal! Ist das EKG gestört oder werden Herzschläge nicht erkannt, kann der Filter nicht richtig arbeiten."),
-                    InfoBlock.TryIt("Schalten Sie den EKG-Filter ein und aus und schauen Sie auf P3-O1 und P4-O2. Mit 'Entfernten Anteil zeigen' sehen Sie in Rot, was abgezogen wird. Schalten Sie danach Alpha dazu: Im kräftigen Alpha-Rhythmus fällt das Artefakt viel weniger auf – der Filter arbeitet trotzdem.")
+                    InfoBlock.TryIt("Schalten Sie den EKG-Filter ein und aus und schauen Sie auf P3-O1 und P4-O2. Mit 'Entfernten Anteil zeigen' sehen Sie in Rot, was abgezogen wird. Schalten Sie danach im Reiter 'Signal' Alpha dazu: Im kräftigen Alpha-Rhythmus fällt das Artefakt viel weniger auf – der Filter arbeitet trotzdem.")
                 }})
 
             ' 11 --------------------------------------------------------------
@@ -198,7 +199,7 @@ Namespace Training
                     InfoBlock.Bullet("EKG: wird immer mit aufgezeichnet; EKG-Filter nur bei Bedarf"),
                     InfoBlock.Bullet("Amplitude: 5–10 µV/mm, üblich 7 µV/mm (= 70 µV/cm). Bei Kindern gelten laut DGKN dieselben Geräte- und Darstellungseinstellungen wie bei Erwachsenen."),
                     InfoBlock.Para("Bei digitalen Geräten werden Filter, Verschaltung, Amplitude und Zeitachse rechnerisch angewendet und können bei der Auswertung nachträglich geändert werden. Bitte immer an die Standards Ihres Labors halten."),
-                    InfoBlock.TryIt("Beheben Sie zuerst, was sich an der Ursache beheben lässt (Kopfschema!). Finden Sie dann die beste Einstellung, sodass Alpha gut erkennbar ist und die Störungen möglichst verschwinden. Prüfen Sie danach mit 'Rohsignal grau unterlegen', was Sie verändert haben."),
+                    InfoBlock.TryIt("Beheben Sie zuerst, was sich an der Ursache beheben lässt (Kopfschema im Reiter 'Impedanzen'!). Finden Sie dann die beste Einstellung, sodass Alpha gut erkennbar ist und die Störungen möglichst verschwinden. Prüfen Sie danach mit 'Rohsignal grau unterlegen', was Sie verändert haben."),
                     InfoBlock.Tip("Goldene Regel: So wenig filtern wie möglich, so viel wie nötig. Zuerst die Ursache beheben (Elektroden, Entspannung, Raum) – und jede Filteränderung dokumentieren.")
                 }})
 

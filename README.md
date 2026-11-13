@@ -16,7 +16,8 @@ Das didaktische Konzept steht in [KONZEPT.md](KONZEPT.md).
 - **Geführte Lektionen** (12 Kapitel): links lesen, rechts ausprobieren. Mit „Weiter“ geht es zum nächsten Kapitel. „Lektion zurücksetzen“ stellt den Ausgangszustand wieder her.
 - **Freier Simulator**: Alle Regler und Signal-Bausteine sind frei wählbar.
 - Ein Klick auf einen **Kanalnamen** wählt den Kanal für die Frequenz-Ansicht.
-- Im **Kopfschema** rechts ändert ein Klick auf eine Elektrode deren Impedanz (Rechtsklick: zurück).
+- Die rechte Leiste hat drei Reiter: **Einstellungen** (Filter, Amplitude, Anzeige), **Impedanzen** und **Signal**. Die Lektionen öffnen jeweils den passenden Reiter.
+- Im **Kopfschema** (Reiter „Impedanzen“) ändert ein Klick auf eine Elektrode deren Impedanz (Rechtsklick: zurück). Per Tastatur: Pfeiltasten wählen die Elektrode, `+` und `−` ändern den Wert.
 - **Abspielen** lässt das EEG wie am Gerät laufen. Tastatur:
   - `P` startet und stoppt die Wiedergabe.
   - `←` / `→` blättern um 10 s zurück bzw. vor.

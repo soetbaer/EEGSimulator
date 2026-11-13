@@ -21,6 +21,7 @@ Namespace UI
         Private _values As Double() = CType(EegSimulator.DefaultImpedances.Clone(), Double())
         Private _saltBridge As Boolean
         Private _hover As Integer = -1
+        Private _focusIdx As Integer        ' per Tastatur gewählte Elektrode
 
         ' Lage der Elektroden im Kopfschema (0 … 1), Reihenfolge wie EegSimulator.ElectrodeNames
         Private Shared ReadOnly Pos As PointF() = {
@@ -34,9 +35,10 @@ Namespace UI
 
         Public Sub New()
             SetStyle(ControlStyles.AllPaintingInWmPaint Or ControlStyles.OptimizedDoubleBuffer Or
-                     ControlStyles.UserPaint Or ControlStyles.ResizeRedraw, True)
+                     ControlStyles.UserPaint Or ControlStyles.ResizeRedraw Or ControlStyles.Selectable, True)
             BackColor = Theme.Card
             Size = New Size(272, 300)
+            TabStop = True
         End Sub
 
         Public Property Values As Double()
@@ -116,15 +118,56 @@ Namespace UI
 
         Protected Overrides Sub OnMouseDown(e As MouseEventArgs)
             MyBase.OnMouseDown(e)
+            Focus()
             Dim i = HitTest(e.Location)
             If i < 0 Then Return
+            _focusIdx = i
+            StepValue(i, If(e.Button = MouseButtons.Right, -1, 1), wrap:=True)
+        End Sub
+
+        Private Sub StepValue(i As Integer, direction As Integer, wrap As Boolean)
             Dim idx = Array.IndexOf(ImpedanceOptions, _values(i))
             If idx < 0 Then idx = 0
             Dim n = ImpedanceOptions.Length
-            idx = If(e.Button = MouseButtons.Right, (idx - 1 + n) Mod n, (idx + 1) Mod n)
+            idx += direction
+            If wrap Then idx = (idx + n) Mod n Else idx = Math.Max(0, Math.Min(n - 1, idx))
+            If _values(i) = ImpedanceOptions(idx) Then Return
             _values(i) = ImpedanceOptions(idx)
             Invalidate()
             RaiseEvent ValuesChanged(Me, EventArgs.Empty)
+        End Sub
+
+        ''' <summary>Pfeiltasten sollen die Elektrode wechseln und nicht den Fokus weiterschieben.</summary>
+        Protected Overrides Function IsInputKey(keyData As Keys) As Boolean
+            Select Case keyData And Keys.KeyCode
+                Case Keys.Left, Keys.Right, Keys.Up, Keys.Down : Return True
+            End Select
+            Return MyBase.IsInputKey(keyData)
+        End Function
+
+        Protected Overrides Sub OnKeyDown(e As KeyEventArgs)
+            MyBase.OnKeyDown(e)
+            Dim col = _focusIdx \ 5, row = _focusIdx Mod 5
+            Select Case e.KeyCode
+                Case Keys.Up : row = Math.Max(0, row - 1)
+                Case Keys.Down : row = Math.Min(4, row + 1)
+                Case Keys.Left : col = 0
+                Case Keys.Right : col = 1
+                Case Keys.Add, Keys.Oemplus, Keys.Space, Keys.Enter : StepValue(_focusIdx, 1, wrap:=False)
+                Case Keys.Subtract, Keys.OemMinus : StepValue(_focusIdx, -1, wrap:=False)
+                Case Else : Return
+            End Select
+            _focusIdx = col * 5 + row
+            e.Handled = True
+            Invalidate()
+        End Sub
+
+        Protected Overrides Sub OnGotFocus(e As EventArgs)
+            MyBase.OnGotFocus(e) : Invalidate()
+        End Sub
+
+        Protected Overrides Sub OnLostFocus(e As EventArgs)
+            MyBase.OnLostFocus(e) : Invalidate()
         End Sub
 
         Protected Overrides Sub OnPaint(e As PaintEventArgs)
@@ -176,6 +219,12 @@ Namespace UI
                     g.FillEllipse(b, c.X - rr, c.Y - rr, rr * 2, rr * 2)
                     g.DrawEllipse(pen, c.X - rr, c.Y - rr, rr * 2, rr * 2)
                 End Using
+                ' Fokusring für die Tastaturbedienung
+                If Focused AndAlso i = _focusIdx Then
+                    Using fpen As New Pen(Theme.TextDark, 2 * Sc)
+                        g.DrawEllipse(fpen, c.X - rr - 3 * Sc, c.Y - rr - 3 * Sc, (rr + 3 * Sc) * 2, (rr + 3 * Sc) * 2)
+                    End Using
+                End If
                 Dim txt = If(v < 1, "<1", v.ToString("0", de))
                 ' auf Gelb ist weiße Schrift nicht lesbar -> dunkle Schrift
                 Dim txtCol = If(col = ColOkay, ColorTranslator.FromHtml("#3A2A00"), Color.White)
