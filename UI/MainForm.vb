@@ -49,6 +49,10 @@ Namespace UI
         Private _btnSensMinus As Button
         Private _btnSensPlus As Button
         Private ReadOnly _partToggles As New Dictionary(Of SignalPart, ToggleSwitch)
+        Private ReadOnly _imp As New ImpedanceView()
+        Private ReadOnly _tglBridge As New ToggleSwitch()
+        Private _rightFlow As FlowLayoutPanel
+        Private _impResetButton As Button
 
         Private _btnPlay As Button
         Private ReadOnly _lblTime As New Label()
@@ -104,7 +108,7 @@ Namespace UI
             Dim logo As New LogoMark With {.Size = New Size(44, 64), .Location = New Point(14, 0)}
             Dim title As New Label With {.Text = "EEG-Filter verstehen", .Font = Theme.FontAppTitle, .ForeColor = Theme.HeaderText,
                                          .AutoSize = True, .Location = New Point(64, 8)}
-            Dim sub1 As New Label With {.Text = "Interaktive Schulung: LowCut · HiCut · Amplitude · 50-Hz-Filter · EKG-Filter",
+            Dim sub1 As New Label With {.Text = "Interaktive Schulung: LowCut · HiCut · Amplitude · 50-Hz-Filter · Impedanzen · EKG-Filter",
                                         .Font = Theme.FontSmall, .ForeColor = Theme.HeaderMuted, .AutoSize = True, .Location = New Point(66, 38)}
 
             Dim modes As New FlowLayoutPanel With {.Dock = DockStyle.Right, .FlowDirection = FlowDirection.LeftToRight, .WrapContents = False,
@@ -249,6 +253,29 @@ Namespace UI
             AddSection(flow, "ANZEIGE")
             SetupToggle(flow, _tglRaw, "Rohsignal grau unterlegen", Theme.TraceRaw)
             SetupToggle(flow, _tglRemoved, "Entfernten Anteil rot zeigen", Theme.Removed)
+
+            ' ---- Impedanzen ----
+            AddSection(flow, "IMPEDANZEN DER ELEKTRODEN")
+            AddHint(flow, "Werte in kΩ. Klick auf eine Elektrode: Wert erhöhen. Rechtsklick: verringern.")
+            _imp.Size = New Size(ControlWidth, 300)
+            _imp.Margin = New Padding(0, 0, 0, 4)
+            flow.Controls.Add(_imp)
+            SetupToggle(flow, _tglBridge, "Gelbrücke F3–C3 (zu niedrig)", ImpedanceView.ColTooLow)
+            _tips.SetToolTip(_tglBridge, "Elektrodenpaste verbindet F3 und C3 leitend: Der Kanal F3-C3 wird fast flach.")
+            Dim btnImpReset = MakeButton("Alle Impedanzen wieder gut", Theme.AccentLight, Theme.AccentDark)
+            btnImpReset.Size = New Size(ControlWidth, 32)
+            btnImpReset.Font = Theme.FontSmallBold
+            btnImpReset.Margin = New Padding(0, 6, 0, 0)
+            _impResetButton = btnImpReset
+            _rightFlow = flow
+            flow.Controls.Add(btnImpReset)
+            AddHandler btnImpReset.Click, Sub()
+                                              _settings.Impedances = CType(EegSimulator.DefaultImpedances.Clone(), Double())
+                                              _settings.SaltBridge = False
+                                              ApplySettingsToControls()
+                                          End Sub
+            AddHandler _imp.ValuesChanged, AddressOf OnControlChanged
+            AddHandler _tglBridge.CheckedChanged, AddressOf OnControlChanged
 
             ' ---- Bausteine ----
             AddSection(flow, "SIGNAL-BAUSTEINE")
@@ -424,6 +451,11 @@ Namespace UI
             _btnNext.Text = If(index < _lessons.Count - 1, "Weiter  ►", "Fertig")
             ApplySettingsToControls()
             UpdateInfo(resetScroll:=True)
+            ' rechte Leiste passend zur Lektion positionieren
+            If _rightFlow IsNot Nothing Then
+                _rightFlow.AutoScrollPosition = New Point(0, 0)
+                If _lessons(index).ShowImpedancePanel Then _rightFlow.ScrollControlIntoView(_impResetButton)
+            End If
         End Sub
 
         Private Sub ApplySettingsToControls()
@@ -435,6 +467,9 @@ Namespace UI
                 _tglEcg.Checked = _settings.EcgFilter
                 _tglRaw.Checked = _settings.ShowRaw
                 _tglRemoved.Checked = _settings.ShowRemoved
+                _tglBridge.Checked = _settings.SaltBridge
+                _imp.Values = _settings.Impedances
+                _imp.SaltBridge = _settings.SaltBridge
                 For Each kv In _partToggles
                     kv.Value.Checked = _settings.Parts.Contains(kv.Key)
                 Next
@@ -451,6 +486,9 @@ Namespace UI
             _settings.EcgFilter = _tglEcg.Checked
             _settings.ShowRaw = _tglRaw.Checked
             _settings.ShowRemoved = _tglRemoved.Checked
+            _settings.Impedances = _imp.Values
+            _settings.SaltBridge = _tglBridge.Checked
+            _imp.SaltBridge = _settings.SaltBridge
             _settings.Parts.Clear()
             For Each kv In _partToggles
                 If kv.Value.Checked Then _settings.Parts.Add(kv.Key)
@@ -484,7 +522,7 @@ Namespace UI
 
         Private Sub Recompute()
             Dim fs = EegSimulator.SampleRate
-            _raw = _sim.Mix(_settings.Parts)
+            _raw = _sim.Mix(_settings.Parts, _settings.Impedances, _settings.SaltBridge)
             _chain = FilterChain.Create(_settings.LowCutHz, _settings.HighCutHz, _settings.Notch, fs)
 
             _filtered = New Double(_raw.Length - 1)() {}

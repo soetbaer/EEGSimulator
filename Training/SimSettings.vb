@@ -18,6 +18,10 @@ Namespace Training
         Public Property ShowRaw As Boolean
         Public Property ShowRemoved As Boolean
         Public Property SelectedChannel As Integer = 3
+        ''' <summary>Elektrodenimpedanzen in kΩ (Reihenfolge wie EegSimulator.ElectrodeNames).</summary>
+        Public Property Impedances As Double() = CType(EegSimulator.DefaultImpedances.Clone(), Double())
+        ''' <summary>Gelbrücke zwischen F3 und C3 (zu niedrige Impedanz).</summary>
+        Public Property SaltBridge As Boolean
 
         Public ReadOnly Property LowCutHz As Double
             Get
@@ -25,9 +29,16 @@ Namespace Training
             End Get
         End Property
 
+        ''' <summary>Setzt die Impedanz einer Elektrode (für Lektions-Voreinstellungen).</summary>
+        Public Function WithImpedance(electrodeName As String, kOhm As Double) As SimSettings
+            Impedances(Array.IndexOf(EegSimulator.ElectrodeNames, electrodeName)) = kOhm
+            Return Me
+        End Function
+
         Public Function Clone() As SimSettings
             Dim c = DirectCast(MemberwiseClone(), SimSettings)
             c.Parts = New HashSet(Of SignalPart)(Parts)
+            c.Impedances = CType(Impedances.Clone(), Double())
             Return c
         End Function
     End Class
@@ -43,6 +54,8 @@ Namespace Training
         Public ReadOnly HighCutOptions As Double() = {0, 100, 70, 50, 35, 30, 20, 15}
         ''' <summary>Empfindlichkeit in µV/mm.</summary>
         Public ReadOnly SensitivityOptions As Double() = {2, 3, 5, 7, 10, 15, 20, 30, 50, 70, 100}
+        ''' <summary>Wählbare Elektrodenimpedanzen in kΩ.</summary>
+        Public ReadOnly ImpedanceOptions As Double() = {2, 3, 5, 10, 15, 25, 50}
 
         Public Function Hz(f As Double) As String
             If f < 1 Then Return f.ToString("0.00", De)
@@ -100,8 +113,8 @@ Namespace Training
                 .Hint = "Sehr langsames Wandern der Grundlinie (unter 0,5 Hz)."},
             New PartDescriptor With {.Part = SignalPart.Emg, .Label = "Muskelartefakt (EMG)", .Color = Theme.ColFast, .IsBrain = False, .TypicalHz = 70,
                 .Hint = "Schnelles 'Gekritzel' durch Muskelanspannung, frontal."},
-            New PartDescriptor With {.Part = SignalPart.Hum, .Label = "50-Hz-Netzbrumm (P4)", .Color = Theme.ColHum, .IsBrain = False, .TypicalHz = 50,
-                .Hint = "Schlecht anliegende Elektrode P4 fängt Netzbrumm ein."},
+            New PartDescriptor With {.Part = SignalPart.Hum, .Label = "50-Hz-Einstreuung (Netz)", .Color = Theme.ColHum, .IsBrain = False, .TypicalHz = 50,
+                .Hint = "Netzstörung aus der Umgebung. Wie stark sie im EEG erscheint, hängt von den Impedanzen ab."},
             New PartDescriptor With {.Part = SignalPart.Ecg, .Label = "EKG-Artefakt", .Color = Theme.ColEcg, .IsBrain = False, .TypicalHz = 12,
                 .Hint = "Kleine Zacken im Takt des Herzschlags."}
         }

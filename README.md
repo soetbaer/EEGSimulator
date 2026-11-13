@@ -6,15 +6,17 @@ Sie zeigt an simulierten EEG-Kurven, wie sich diese Einstellungen auswirken:
 - **HiCut (FO)**
 - **Amplitude (Empfindlichkeit)**
 - **50-Hz-Filter**
+- **Impedanzen der Elektroden** (Netzbrumm, unruhige Grundlinie, Elektroden-Pops, Gelbrücke)
 - **EKG-Filter**
 
 Das didaktische Konzept steht in [KONZEPT.md](KONZEPT.md).
 
 ## Bedienung
 
-- **Geführte Lektionen** (10 Kapitel): links lesen, rechts ausprobieren. Mit „Weiter“ geht es zum nächsten Kapitel. „Lektion zurücksetzen“ stellt den Ausgangszustand wieder her.
+- **Geführte Lektionen** (12 Kapitel): links lesen, rechts ausprobieren. Mit „Weiter“ geht es zum nächsten Kapitel. „Lektion zurücksetzen“ stellt den Ausgangszustand wieder her.
 - **Freier Simulator**: Alle Regler und Signal-Bausteine sind frei wählbar.
 - Ein Klick auf einen **Kanalnamen** wählt den Kanal für die Frequenz-Ansicht.
+- Im **Kopfschema** rechts ändert ein Klick auf eine Elektrode deren Impedanz (Rechtsklick: zurück).
 - **Abspielen** lässt das EEG wie am Gerät laufen. Tastatur:
   - `P` startet und stoppt die Wiedergabe.
   - `←` / `→` blättern um 10 s zurück bzw. vor.
@@ -44,13 +46,13 @@ Die EXE liegt danach in `bin\Release\net8.0-windows\win-x64\publish\`.
 | `Dsp/` | Filter (Hochpass/Tiefpass/Notch), FFT, EKG-Template-Subtraktion |
 | `Simulation/` | Generator des simulierten EEG mit allen Bausteinen und Artefakten |
 | `Training/` | Einstellungen, Lektionstexte (`LessonCatalog.vb`), Live-Erklärungen (`Explainer.vb`) |
-| `UI/` | Hauptfenster, EEG-Ansicht, Frequenz-Ansicht, Schalter, Info-Karte, Farben (`Theme.vb`) |
+| `UI/` | Hauptfenster, EEG-Ansicht, Frequenz-Ansicht, Kopfschema für Impedanzen, Schalter, Info-Karte, Farben (`Theme.vb`) |
 
 ## Anpassen
 
 - **Texte der Lektionen**: `Training/LessonCatalog.vb`. Jede Lektion hat Texte und eine Ausgangseinstellung (`Preset`).
 - **Auswahllisten** (Zeitkonstanten, HiCut-Werte, µV/mm): `Training/SimSettings.vb` → `FilterText`
-- **Laborstandards** (z. B. andere Standardwerte): Preset von Lektion 10 bzw. `SimSettings`-Vorgaben
+- **Laborstandards** (z. B. andere Standardwerte): Preset von Lektion 12 bzw. `SimSettings`-Vorgaben
 - **Farben/Schriften**: `UI/Theme.vb`
 
 ## Hinweise

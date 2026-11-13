@@ -89,14 +89,47 @@ Namespace Training
                 End If
             End If
 
+            ' ---------- Impedanzen ----------
+            Dim z = CType(s.Impedances.Clone(), Double())
+            If s.SaltBridge Then
+                For Each e In EegSimulator.ChannelElectrodes(EegSimulator.SaltBridgeChannel) : z(e) = 0.5 : Next
+            End If
+            Dim worstCh = 0, worstDiff = 0.0
+            For c = 0 To EegSimulator.ChannelElectrodes.Length - 1
+                Dim d = Math.Abs(z(EegSimulator.ChannelElectrodes(c)(0)) - z(EegSimulator.ChannelElectrodes(c)(1)))
+                If d > worstDiff Then worstDiff = d : worstCh = c
+            Next
+            Dim humUv = worstDiff * EegSimulator.HumMicrovoltPerKiloOhm
+            Dim bad = Enumerable.Range(0, z.Length).Where(Function(i) z(i) > 10).ToList()
+            Dim mid = Enumerable.Range(0, z.Length).Where(Function(i) z(i) > 5 AndAlso z(i) <= 10).ToList()
+            Dim zLabel = Function(i As Integer) $"{EegSimulator.ElectrodeNames(i)} ({z(i).ToString("0", De)} kΩ)"
+
+            If bad.Count > 0 Then
+                list.Add(InfoBlock.Warning($"Impedanz zu hoch: {String.Join(", ", bad.Select(zLabel))}. Betroffen sind alle Kanäle mit dieser Elektrode: unruhige Grundlinie und plötzliche Sprünge (Elektroden-Pops), in Nachbarkanälen spiegelbildlich. Das lässt sich nicht wegfiltern – Elektrode neu setzen."))
+                Dim zMax = bad.Max(Function(i) z(i))
+                Dim lossPct = zMax / (100000.0 + zMax) * 100
+                Dim thermalUv = Math.Sqrt(4 * 1.380649E-23 * 310 * zMax * 1000 * 70) * 1000000.0
+                list.Add(InfoBlock.Para($"Zur Einordnung: Kleiner wird das EEG dadurch nicht – bei {zMax.ToString("0", De)} kΩ gehen an einem Verstärker mit 100 MΩ Eingangswiderstand nur etwa {lossPct.ToString("0.00", De)} % verloren. Auch das reine Widerstandsrauschen ist winzig (rechnerisch ca. {thermalUv.ToString("0.0", De)} µV). Das Problem ist der instabile, störanfällige Kontakt."))
+            ElseIf mid.Count > 0 Then
+                list.Add(InfoBlock.Tip($"Impedanz grenzwertig: {String.Join(", ", mid.Select(zLabel))}. Bis 10 kΩ ist noch zulässig, Ziel sind höchstens 5 kΩ und möglichst gleiche Werte an allen Elektroden."))
+            End If
+            If s.SaltBridge Then
+                list.Add(InfoBlock.Warning("Gelbrücke zwischen F3 und C3: Elektrodenpaste verbindet beide Elektroden leitend. Sie messen fast dasselbe, der Kanal F3-C3 wird nahezu flach. Das kann wie eine echte Abflachung fehlgedeutet werden! Warnzeichen: Impedanz unter 1 kΩ."))
+            End If
+
             ' ---------- 50 Hz ----------
             If s.Notch Then
                 list.Add(InfoBlock.Para("50-Hz-Filter ist AN: Ein schmaler Bereich um 50 Hz wird gezielt herausgeschnitten, alles andere bleibt fast unverändert."))
-                If has(SignalPart.Hum) Then
-                    list.Add(InfoBlock.Good("Der Netzbrumm ist verschwunden. Trotzdem die Ursache prüfen: meist eine schlecht anliegende Elektrode (hier P4 – Übergangswiderstand messen!)."))
+            End If
+            If has(SignalPart.Hum) Then
+                Dim chName = EegSimulator.ChannelNames(worstCh)
+                If humUv < 6 Then
+                    list.Add(InfoBlock.Good($"Netzeinstreuung ist vorhanden, aber kaum sichtbar: Die Impedanzen sind niedrig und fast gleich (größter Unterschied in einem Kanal: {worstDiff.ToString("0", De)} kΩ). Der Verstärker kann die Störung unterdrücken."))
+                ElseIf s.Notch Then
+                    list.Add(InfoBlock.Good($"Der Netzbrumm (am stärksten in {chName}) ist herausgefiltert. Die Ursache bleibt aber bestehen: {worstDiff.ToString("0", De)} kΩ Impedanz-Unterschied zwischen den beiden Elektroden dieses Kanals."))
+                Else
+                    list.Add(InfoBlock.Tip($"Netzbrumm sichtbar (dicke, 'pelzige' Kurve), am stärksten in {chName}: Die beiden Elektroden dieses Kanals unterscheiden sich um {worstDiff.ToString("0", De)} kΩ. Erst die Elektrode verbessern, dann ggf. den 50-Hz-Filter einschalten."))
                 End If
-            ElseIf has(SignalPart.Hum) Then
-                list.Add(InfoBlock.Tip("Netzbrumm sichtbar: dicke, 'pelzige' Kurven in C4-P4 und P4-O2 – beide Kanäle enthalten P4. Erst Elektrode prüfen, dann ggf. den 50-Hz-Filter einschalten."))
             End If
 
             ' ---------- EKG ----------

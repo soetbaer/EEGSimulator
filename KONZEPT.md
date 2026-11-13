@@ -15,7 +15,9 @@ Grundsatz: **Erst sehen, dann verstehen.** Keine Formeln im Vordergrund, sondern
 | LowCut zu hoch | Delta-Herd verschwindet, Blinzeln wird verformt | Direkter Vergleich mit grauem Original |
 | HiCut (FO) | Hält schnelle Wellen zurück (EMG) | „Gekritzel“ wird ruhiger |
 | HiCut zu niedrig | Spikes werden stumpf, EMG sieht wie Beta aus | „Ein Filter kann täuschen“ |
-| 50-Hz-Filter | Kerbe genau bei 50 Hz | Elektrode als „Antenne“, Ursache: Impedanz |
+| 50-Hz-Filter | Kerbe genau bei 50 Hz | Ursache meist eine schlechte Elektrode |
+| Impedanz | Kontakt zur Kopfhaut; nicht nur niedrig, sondern gleich | Balkenwaage: Nur gleiche Kontakte lassen die Störung herausfallen |
+| Folgen schlechter Impedanz | Unruhe, Pops, Verwechslung mit Spike oder Herd; Gelbrücke | Störung nur an einer Elektrode, in Nachbarkanälen spiegelbildlich |
 | EKG-Filter | Schablone mitteln und abziehen | Viele Herzschläge übereinanderlegen: Das EEG mittelt sich weg, das Artefakt bleibt |
 | Amplitude | µV/mm, **kleinere Zahl = größere Kurven**, kein Filter! | Eichbalken, Frequenz-Ansicht ändert sich nicht |
 | Alles zusammen | So wenig filtern wie möglich, so viel wie nötig | Freie Übung mit allen Artefakten |
@@ -54,7 +56,7 @@ Wiederkehrende Elemente in jeder Lektion:
 | Augenblinzeln | Fp positiv, Ausschlag nach unten |
 | Schwitzartefakt | sehr langsam (0,1–0,4 Hz), je Kanal unabhängig |
 | EMG | schubweise, frontal |
-| 50-Hz-Brumm | schlechte Elektrode P4 |
+| 50-Hz-Einstreuung | Stärke je Kanal folgt aus dem Impedanz-Unterschied der beiden Elektroden |
 | EKG-Artefakt | – |
 
 ### Filter
@@ -92,7 +94,26 @@ Die Texte und die Simulation wurden gegen öffentlich zugängliche Leitlinien un
 | Muskelartefakt reicht von etwa 20 bis 300 Hz; gefiltert kann es Beta oder steile Wellen vortäuschen | Muthukumaraswamy, Front Hum Neurosci 2013; Goncharova et al., Clin Neurophysiol 2003 |
 | EKG-Filter durch R-Zacken-getriggerte Mittelung und Subtraktion | Nakamura & Shibasaki, Electroencephalogr Clin Neurophysiol 1987; 66: 88–92 |
 
+### Impedanzmodell
+
+Störungen entstehen in der Simulation an der einzelnen Elektrode. Im Kanal erscheint die Differenz (Eingang 1 minus Eingang 2).
+
+| Effekt | Modell | Grundlage |
+|---|---|---|
+| 50-Hz-Einstreuung | Störspannung je Elektrode = 2 µV pro kΩ (Beispielwert, entspricht etwa 2 nA Störstrom in der Zuleitung). Im Kanal bleibt der Unterschied der beiden Elektroden. | Ungleiche Impedanzen verschlechtern die Gleichtaktunterdrückung (ACNS Guideline 1; Huhta & Webster 1973) |
+| Unruhige Grundlinie | Langsames Rauschen (0,2–3 Hz), ab 5 kΩ mit der Impedanz zunehmend | Kappenman & Luck, Psychophysiology 2010: mehr Rauschen unter 5 Hz bei hoher Impedanz |
+| Elektroden-Pops | Steiler Sprung, Rücklauf mit 0,15 s, ab 10 kΩ; nur an einer Elektrode | Lehrbuchbeschreibung des Pop-Artefakts (steiler Anstieg, langsamer Abfall, kein Feld) |
+| Kein Amplitudenverlust | Spannungsteiler Elektrode/Verstärker wird nur berechnet und angezeigt (bei 50 kΩ und 100 MΩ: 0,05 %) | Ferree et al., Clin Neurophysiol 2001; IFCN-Standard: Eingangswiderstand über 100 MΩ |
+| Widerstandsrauschen | Wird nur berechnet und angezeigt (bei 25 kΩ und 70 Hz Bandbreite etwa 0,2 µV) | Physikalische Formel für thermisches Rauschen |
+| Gelbrücke F3–C3 | Kanal F3-C3 behält 8 % der Amplitude | Lehrbuchbeschreibung der Salzbrücke (flacher Kanal) |
+
+Grenzwerte im Kopfschema: grün 1–5 kΩ, gelb bis 10 kΩ, rot über 10 kΩ, blau unter 1 kΩ (DGKN 2024: 1–10 kΩ, möglichst gleichmäßig; ACNS: Ziel 5 kΩ, bis 10 kΩ akzeptabel, nicht unter 100 Ω).
+
 ### Bewusste Vereinfachungen
+
+- Die Stärke der Netzeinstreuung hängt in Wirklichkeit stark von der Umgebung ab. Der Wert von 2 µV pro kΩ ist ein Beispiel, kein Messwert.
+- Die Schwellen, ab denen Unruhe (5 kΩ) und Pops (10 kΩ) einsetzen, sind didaktisch gewählt. In Wirklichkeit hängen Pops vom lockeren Sitz ab, nicht von einem festen Impedanzwert.
+- Die Gelbrücke wirkt nur auf den Kanal F3-C3. Die Nachbarkanäle bleiben unverändert.
 
 - Die Flankensteilheit der Filter ist geräteabhängig. Hier: LowCut 6 dB/Oktave (wie ein RC-Glied), HiCut 12 dB/Oktave.
 - Die Signale sind synthetisch. Amplituden und Verteilung sind typisch gewählt, bilden aber keinen einzelnen Patienten ab.

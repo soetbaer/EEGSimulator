@@ -44,9 +44,45 @@ Namespace Simulation
             {SignalPart.Blinks, {1.0, 0.25, 0.05, 0, 1.0, 0.25, 0.05, 0, 0}},          ' Fp positiv (Bell-Phänomen) -> Ausschlag nach unten
             {SignalPart.Sweat, {1.0, 0.6, 0.5, 0.7, 0.9, 0.7, 0.4, 0.8, 0.1}},
             {SignalPart.Emg, {1.0, 0.5, 0.25, 0.3, 1.0, 0.55, 0.25, 0.35, 0.15}},       ' frontal
-            {SignalPart.Hum, {0.25, 0.2, 0.25, 0.2, 0.25, 0.2, 1.0, 1.15, 0.3}},        ' schlechte Elektrode P4
             {SignalPart.Ecg, {0.15, 0.1, 0.35, 0.6, -0.15, -0.1, -0.35, -0.55, 0}}
         }
+
+        ' ---------- Elektroden und Impedanzen ----------
+        Public Shared ReadOnly ElectrodeNames As String() = {"Fp1", "F3", "C3", "P3", "O1", "Fp2", "F4", "C4", "P4", "O2"}
+
+        ''' <summary>Je EEG-Kanal: (Eingang 1, Eingang 2) als Index in ElectrodeNames.</summary>
+        Public Shared ReadOnly ChannelElectrodes As Integer()() = {
+            New Integer() {0, 1}, New Integer() {1, 2}, New Integer() {2, 3}, New Integer() {3, 4},
+            New Integer() {5, 6}, New Integer() {6, 7}, New Integer() {7, 8}, New Integer() {8, 9}}
+
+        ''' <summary>Gute, leicht unterschiedliche Ausgangswerte in kΩ.</summary>
+        Public Shared ReadOnly DefaultImpedances As Double() = {3, 2, 2, 3, 2, 2, 3, 2, 2, 3}
+
+        ''' <summary>
+        ''' Beispielwert: so viel 50-Hz-Störspannung entsteht pro kΩ Elektrodenimpedanz (µV/kΩ).
+        ''' Entspricht einem Störstrom von etwa 2 nA in der Elektrodenzuleitung (U = I · Z).
+        ''' Im Kanal bleibt die DIFFERENZ der beiden Elektroden übrig – deshalb zählt der Impedanz-Unterschied.
+        ''' Der tatsächliche Wert hängt stark von der Umgebung ab.
+        ''' </summary>
+        Public Const HumMicrovoltPerKiloOhm As Double = 2.0
+
+        ''' <summary>Kanal, der bei eingeschalteter Gelbrücke (F3–C3) kurzgeschlossen wird.</summary>
+        Public Const SaltBridgeChannel As Integer = 1
+        Public Const SaltBridgeRemaining As Double = 0.08
+
+        ''' <summary>Verstärkung der langsamen Kontakt-Unruhe (0 bei guter Impedanz bis 5 kΩ).</summary>
+        Public Shared Function InstabilityGain(kOhm As Double) As Double
+            Return Math.Min(2.5, Math.Max(0, kOhm - 5) / 20.0)
+        End Function
+
+        ''' <summary>Verstärkung der Elektroden-"Pops" (erst bei deutlich zu hoher Impedanz über 10 kΩ).</summary>
+        Public Shared Function PopGain(kOhm As Double) As Double
+            Return Math.Min(2.0, Math.Max(0, kOhm - 10) / 15.0)
+        End Function
+
+        Private ReadOnly _humBase As Double()
+        Private ReadOnly _wander As Double()()      ' je Elektrode: langsame Kontakt-Unruhe (µV bei Gain 1)
+        Private ReadOnly _pops As Double()()        ' je Elektrode: Pops (µV bei Gain 1)
 
         Private ReadOnly _parts As New Dictionary(Of SignalPart, Double()())
         Private ReadOnly _background As Double()()
@@ -181,17 +217,12 @@ Namespace Simulation
             Next
             _parts(SignalPart.Emg) = em
 
-            ' ---------- 50-Hz-Netzbrumm ----------
-            Dim hm = NewSet()
+            ' ---------- 50-Hz-Netzeinstreuung: Grundschwingung (Stärke je Elektrode folgt aus der Impedanz) ----------
+            _humBase = New Double(SampleCount - 1) {}
             Dim hmEnv = SmoothNoise(rng, 0.2)
-            For c = 0 To ChannelNames.Length - 1
-                Dim p0 = rng.NextDouble() * 0.6
-                Dim w = Weights(SignalPart.Hum)(c) * 22
-                For i = 0 To SampleCount - 1
-                    hm(c)(i) = w * (1 + 0.1 * hmEnv(i)) * Math.Sin(2 * Math.PI * 50.0 * i / fs + p0)
-                Next
+            For i = 0 To SampleCount - 1
+                _humBase(i) = (1 + 0.08 * hmEnv(i)) * Math.Sin(2 * Math.PI * 50.0 * i / fs)
             Next
-            _parts(SignalPart.Hum) = hm
 
             ' ---------- Herzschlag: EKG-Kanal + EKG-Artefakt in den EEG-Kanälen ----------
             Dim beat(SampleCount - 1) As Double
@@ -203,6 +234,34 @@ Namespace Simulation
             End While
             For i = 0 To SampleCount - 1 : _background(EcgChannel)(i) -= 800 * beat(i) : Next
             _parts(SignalPart.Ecg) = Spread(SignalPart.Ecg, beat, beat, 40)
+
+            ' ---------- Kontakt-Unruhe und Pops je Elektrode (wirken nur bei hoher Impedanz) ----------
+            Dim rngE As New Random(seed + 1)
+            _wander = New Double(ElectrodeNames.Length - 1)() {}
+            _pops = New Double(ElectrodeNames.Length - 1)() {}
+            For e = 0 To ElectrodeNames.Length - 1
+                ' langsame Schwankungen, überwiegend unter 5 Hz, plus etwas breitbandiges Rauschen
+                Dim slow = BandNoise(rngE, 0.2, 3)
+                Dim white = WhiteNoise(rngE)
+                Dim w(SampleCount - 1) As Double
+                For i = 0 To SampleCount - 1 : w(i) = 8.0 * slow(i) + 1.5 * white(i) : Next
+                _wander(e) = w
+
+                ' Pops: sehr steiler Sprung, langsames Zurücklaufen
+                Dim pp(SampleCount - 1) As Double
+                Dim tp = 1.0 + rngE.NextDouble() * 4
+                While tp < Duration - 1
+                    Dim sign = If(rngE.NextDouble() < 0.5, -1.0, 1.0)
+                    Dim amp = sign * (60 + 60 * rngE.NextDouble())
+                    Dim i0 = CInt(tp * fs)
+                    For i = i0 To Math.Min(SampleCount - 1, i0 + CInt(1.2 * fs))
+                        Dim tau = (i - i0) / fs
+                        pp(i) += amp * (1 - Math.Exp(-tau / 0.004)) * Math.Exp(-tau / 0.15)
+                    Next
+                    tp += 2.5 + rngE.NextDouble() * 6
+                End While
+                _pops(e) = pp
+            Next
         End Sub
 
         ''' <summary>
@@ -210,6 +269,7 @@ Namespace Simulation
         ''' (für die Messung "wie viel kommt durch den Filter").
         ''' </summary>
         Public Function PartSignal(part As SignalPart) As Double()
+            If part = SignalPart.Hum Then Return _humBase
             Dim w = Weights(part)
             Dim best = 0
             For c = 1 To w.Length - 1
@@ -220,22 +280,61 @@ Namespace Simulation
 
         ''' <summary>Signal eines Bausteins in einem bestimmten Kanal.</summary>
         Public Function PartSignal(part As SignalPart, channel As Integer) As Double()
+            If part = SignalPart.Hum Then Return _humBase
             Return _parts(part)(channel)
         End Function
 
-        ''' <summary>Mischt Hintergrund + gewählte Bausteine zu einem Roh-EEG.</summary>
-        Public Function Mix(parts As IEnumerable(Of SignalPart)) As Double()()
+        ''' <summary>
+        ''' Mischt Hintergrund + gewählte Bausteine zu einem Roh-EEG.
+        ''' Die Elektrodenimpedanzen (kΩ, Reihenfolge wie ElectrodeNames) bestimmen,
+        ''' wie stark 50-Hz-Einstreuung, Kontakt-Unruhe und Pops in den Kanälen erscheinen.
+        ''' </summary>
+        Public Function Mix(parts As IEnumerable(Of SignalPart), Optional impedances As Double() = Nothing,
+                            Optional saltBridge As Boolean = False) As Double()()
             Dim r = NewSet()
             For c = 0 To r.Length - 1
                 Array.Copy(_background(c), r(c), SampleCount)
             Next
-            For Each p In parts.Distinct()
+            Dim partList = parts.Distinct().ToList()
+            Dim z = If(impedances, DefaultImpedances)
+            Dim humOn = partList.Contains(SignalPart.Hum)
+
+            ' Störungen entstehen an der einzelnen Elektrode; im Kanal erscheint Eingang 1 minus Eingang 2
+            For c = 0 To ChannelElectrodes.Length - 1
+                For k = 0 To 1
+                    Dim e = ChannelElectrodes(c)(k)
+                    Dim sign = If(k = 0, 1.0, -1.0)
+                    Dim ze = z(e)
+                    If saltBridge AndAlso ChannelElectrodes(SaltBridgeChannel).Contains(e) Then ze = 0.5
+                    Dim hum = If(humOn, sign * HumMicrovoltPerKiloOhm * ze, 0.0)
+                    Dim gw = sign * InstabilityGain(ze)
+                    Dim gp = sign * PopGain(ze)
+                    If hum = 0 AndAlso gw = 0 AndAlso gp = 0 Then Continue For
+                    Dim dst = r(c), wn = _wander(e), pp = _pops(e)
+                    For i = 0 To SampleCount - 1
+                        dst(i) += hum * _humBase(i) + gw * wn(i) + gp * pp(i)
+                    Next
+                Next
+            Next
+            If humOn Then
+                Dim ecg = r(EcgChannel)
+                For i = 0 To SampleCount - 1 : ecg(i) += 4.0 * _humBase(i) : Next
+            End If
+
+            For Each p In partList
+                If p = SignalPart.Hum Then Continue For
                 Dim s = _parts(p)
                 For c = 0 To r.Length - 1
                     Dim src = s(c), dst = r(c)
                     For i = 0 To SampleCount - 1 : dst(i) += src(i) : Next
                 Next
             Next
+
+            ' Gelbrücke: F3 und C3 sind leitend verbunden -> kaum noch Spannungsunterschied im Kanal F3-C3
+            If saltBridge Then
+                Dim sb = r(SaltBridgeChannel)
+                For i = 0 To SampleCount - 1 : sb(i) *= SaltBridgeRemaining : Next
+            End If
             Return r
         End Function
 
