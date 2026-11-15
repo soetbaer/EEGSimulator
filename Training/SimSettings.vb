@@ -13,7 +13,9 @@ Namespace Training
         Public Property HighCutHz As Double = 70        ' 0 = aus
         Public Property Notch As Boolean
         Public Property EcgFilter As Boolean
-        Public Property Sensitivity As Double = 7       ' µV/mm
+        Public Property Sensitivity As Double = 7       ' µV/mm, nur EEG-Kanäle
+        ''' <summary>Empfindlichkeit des EKG-Kanals in µV/mm, unabhängig von der Amplitude des EEG.</summary>
+        Public Property EcgSensitivity As Double = 70
         Public Property Parts As New HashSet(Of SignalPart)
         Public Property ShowRaw As Boolean
         Public Property ShowRemoved As Boolean
@@ -70,6 +72,8 @@ Namespace Training
         Public ReadOnly HighCutOptions As Double() = {0, 100, 70, 50, 35, 30, 20, 15}
         ''' <summary>Empfindlichkeit in µV/mm.</summary>
         Public ReadOnly SensitivityOptions As Double() = {2, 3, 5, 7, 10, 15, 20, 30, 50, 70, 100}
+        ''' <summary>Empfindlichkeit des EKG-Kanals in µV/mm (Klick auf die EKG-Kurve).</summary>
+        Public ReadOnly EcgSensitivityOptions As Double() = {20, 30, 50, 70, 100, 150, 200, 300}
         ''' <summary>Wählbare Elektrodenimpedanzen in kΩ.</summary>
         Public ReadOnly ImpedanceOptions As Double() = {2, 3, 5, 10, 15, 25, 50}
 

@@ -76,10 +76,10 @@ Namespace Simulation
         End Function
 
         Public Shared Function Ecg() As Derivation
-            Return New Derivation With {.Label = "EKG", .SubLabel = $"Skala 1:{EcgScale:0}", .Kind = ChannelKind.Ecg, .ScaleDivisor = EcgScale}
+            ' Die Größe des EKG wird in der Anzeige eigens eingestellt (µV/mm), unabhängig vom EEG
+            Return New Derivation With {.Label = "EKG", .Kind = ChannelKind.Ecg}
         End Function
 
-        Public Const EcgScale As Double = 10
         Public Const AmplifierInputScale As Double = 20
     End Class
 

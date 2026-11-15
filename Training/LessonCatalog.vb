@@ -377,7 +377,8 @@ Namespace Training
                     InfoBlock.Para("Wichtig: Die Amplitude ist KEIN Filter. Das Signal selbst bleibt gleich, nur die Darstellung ändert sich. Deshalb verändert sich die Frequenz-Ansicht nicht."),
                     InfoBlock.Warning("Zu klein dargestellt (große Zahl): niedrige Aktivität wird übersehen. Zu groß dargestellt: Kurven überlappen und werden unlesbar."),
                     InfoBlock.Para("Hinweis: Wie groß ein Millimeter am Bildschirm wirklich ist, hängt von den Monitor-Einstellungen ab."),
-                    InfoBlock.TryIt("Ändern Sie die Amplitude mit den Schaltflächen – und + (oder den Tasten + und − auf der Tastatur) und beobachten Sie den Eichbalken unten rechts im EEG.")
+                    InfoBlock.Para("Die Amplitude gilt für die EEG-Kanäle. Das EKG ist viel größer und hat deshalb eine eigene Einstellung, die neben dem Kanalnamen steht (hier 70 µV/mm): Ein Klick auf die EKG-Kurve zeichnet sie größer, ein Rechtsklick kleiner."),
+                    InfoBlock.TryIt("Ändern Sie die Amplitude mit den Schaltflächen – und + (oder den Tasten + und − auf der Tastatur) und beobachten Sie den Eichbalken unten rechts im EEG. Das EKG bleibt dabei gleich groß. Klicken Sie dann auf die EKG-Kurve.")
                 }})
 
             L.Add(New Lesson With {

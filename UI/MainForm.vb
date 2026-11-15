@@ -63,7 +63,7 @@ Namespace UI
         Private ReadOnly _lblTime As New Label()
         Private ReadOnly _tips As New ToolTip() With {.AutoPopDelay = 15000, .InitialDelay = 400}
 
-        Private ReadOnly _timer As New System.Windows.Forms.Timer() With {.Interval = 30}
+        Private ReadOnly _timer As New System.Windows.Forms.Timer() With {.Interval = 15}
         Private ReadOnly _clock As New Stopwatch()
         Private _lastTick As Double
         Private _viewStart As Double
@@ -102,7 +102,7 @@ Namespace UI
 
             ' Namen für Bildschirmleser
             _eeg.AccessibleName = "EEG-Kurven"
-            _eeg.AccessibleDescription = "Simulierte EEG-Kurven in der gewählten Verschaltung, rechts über links, unten EKG. Klick auf einen Kanal wählt ihn für die Frequenz-Ansicht."
+            _eeg.AccessibleDescription = "Simulierte EEG-Kurven in der gewählten Verschaltung, rechts über links, unten EKG. Klick auf einen Kanalnamen wählt ihn für die Frequenz-Ansicht. Klick auf die EKG-Kurve zeichnet das EKG größer, Rechtsklick kleiner."
             _spectrum.AccessibleName = "Frequenz-Ansicht"
             _imp.AccessibleName = "Impedanzen der Elektroden"
             _montageView.AccessibleName = "Kopfschema der Verschaltung"
@@ -110,6 +110,7 @@ Namespace UI
             _info.AccessibleName = "Erklärung"
             AddHandler _timer.Tick, AddressOf OnTick
             AddHandler _eeg.ChannelClicked, AddressOf OnChannelClicked
+            AddHandler _eeg.EcgAmplitudeClicked, AddressOf OnEcgAmplitudeClicked
 
             SetMode(lessonMode:=True)
         End Sub
@@ -268,7 +269,7 @@ Namespace UI
 
             ' ---- Amplitude ----
             AddSection(flow, "Amplitude")
-            AddLabel(flow, "Empfindlichkeit", "kleinere Zahl = größere Kurven")
+            AddLabel(flow, "Empfindlichkeit (EEG)", "kleinere Zahl = größere Kurven")
             Dim sensRow As New FlowLayoutPanel With {.FlowDirection = FlowDirection.LeftToRight, .WrapContents = False,
                                                      .Size = New Size(ControlWidth, 40), .Margin = New Padding(0, 2, 0, 4), .BackColor = Theme.Card}
             _btnSensMinus = MakeButton("−", Theme.AccentLight, Theme.AccentDark)
@@ -289,8 +290,8 @@ Namespace UI
             sensRow.Controls.Add(_lblSens)
             sensRow.Controls.Add(_btnSensPlus)
             flow.Controls.Add(sensRow)
-            _tips.SetToolTip(_btnSensMinus, "Kurven kleiner (größere µV/mm-Zahl). Tastatur: −")
-            _tips.SetToolTip(_btnSensPlus, "Kurven größer (kleinere µV/mm-Zahl). Tastatur: +")
+            _tips.SetToolTip(_btnSensMinus, "EEG-Kurven kleiner (größere µV/mm-Zahl). Tastatur: −. Das EKG bleibt gleich.")
+            _tips.SetToolTip(_btnSensPlus, "EEG-Kurven größer (kleinere µV/mm-Zahl). Tastatur: +. Das EKG bleibt gleich.")
             AddHandler _btnSensMinus.Click, Sub() StepSensitivity(+1)
             AddHandler _btnSensPlus.Click, Sub() StepSensitivity(-1)
 
@@ -398,7 +399,7 @@ Namespace UI
             _lblTime.ForeColor = Theme.TextMuted
             _lblTime.Font = Theme.FontBold
             Dim lblHint As New Label With {.AutoSize = True, .Margin = New Padding(24, 10, 0, 0), .ForeColor = Theme.TextMuted, .Font = Theme.FontSmall,
-                                           .Text = "Klick auf Kanalnamen: Frequenz-Ansicht"}
+                                           .Text = "Klick auf Kanalnamen: Frequenz-Ansicht  ·  Klick auf EKG-Kurve: EKG-Größe"}
             bar.Controls.AddRange({btnBack, _btnPlay, btnFwd, _lblTime, lblHint})
 
             ' EEG-Karte
@@ -600,6 +601,16 @@ Namespace UI
             Recompute()
         End Sub
 
+        ''' <summary>Klick auf die EKG-Kurve: Das EKG hat eine eigene Größe, unabhängig von der Amplitude des EEG.</summary>
+        Private Sub OnEcgAmplitudeClicked(sender As Object, direction As Integer)
+            Dim idx = Array.IndexOf(EcgSensitivityOptions, _settings.EcgSensitivity)
+            If idx < 0 Then idx = Array.IndexOf(EcgSensitivityOptions, 70.0)
+            ' größer zeichnen heißt: kleinere µV/mm-Zahl
+            idx = Math.Max(0, Math.Min(EcgSensitivityOptions.Length - 1, idx - direction))
+            _settings.EcgSensitivity = EcgSensitivityOptions(idx)
+            _eeg.EcgSensitivity = _settings.EcgSensitivity
+        End Sub
+
         Private Sub OnChannelClicked(sender As Object, ch As Integer)
             _settings.SelectedChannel = ch
             _eeg.SelectedChannel = ch
@@ -656,6 +667,7 @@ Namespace UI
             _imp.Montage = montage
 
             _eeg.Sensitivity = _settings.Sensitivity
+            _eeg.EcgSensitivity = _settings.EcgSensitivity
             _eeg.WindowSeconds = WindowSec
             _eeg.StartSeconds = _viewStart
             _eeg.SweepActive = _sweep

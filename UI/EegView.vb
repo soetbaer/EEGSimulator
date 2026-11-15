@@ -12,6 +12,8 @@ Namespace UI
         Inherits Control
 
         Public Event ChannelClicked As EventHandler(Of Integer)
+        ''' <summary>Klick auf die EKG-Kurve: +1 = größer zeichnen, −1 = kleiner zeichnen.</summary>
+        Public Event EcgAmplitudeClicked As EventHandler(Of Integer)
 
         Private _raw As Double()()
         Private _filtered As Double()()
@@ -24,7 +26,51 @@ Namespace UI
         Public Property StartSeconds As Double
         Public Property ShowRaw As Boolean
         Public Property ShowRemoved As Boolean
+        Private _selectedChannel As Integer
+        Private _ecgSensitivity As Double = 70
+
         Public Property SelectedChannel As Integer
+            Get
+                Return _selectedChannel
+            End Get
+            Set(value As Integer)
+                If value = _selectedChannel Then Return
+                _selectedChannel = value
+                Touch()
+            End Set
+        End Property
+
+        ''' <summary>Empfindlichkeit des EKG-Kanals in µV/mm – unabhängig von der Amplitude der EEG-Kanäle.</summary>
+        Public Property EcgSensitivity As Double
+            Get
+                Return _ecgSensitivity
+            End Get
+            Set(value As Double)
+                If value = _ecgSensitivity Then Return
+                _ecgSensitivity = value
+                Touch()
+            End Set
+        End Property
+
+        ' ---- Zwischenspeicher: Hintergrund und fertig gezeichnete Seiten ----
+        ' Beim Abspielen ändert sich nur die Lage der Schreiblinie. Hintergrund und Kurven werden deshalb
+        ' einmal in Bilder gezeichnet und danach nur noch zusammengesetzt – das hält die Bewegung flüssig.
+        Private _version As Integer
+        Private _back As Bitmap
+        Private _backVersion As Integer = -1
+
+        Private NotInheritable Class PageLayer
+            Public Bmp As Bitmap
+            Public Origin As Double
+            Public Version As Integer
+        End Class
+        Private ReadOnly _pages As New List(Of PageLayer)
+
+        ''' <summary>Daten oder Einstellungen haben sich geändert: Zwischenspeicher verwerfen und neu zeichnen.</summary>
+        Private Sub Touch()
+            _version += 1
+            Invalidate()
+        End Sub
 
         ' ---- Schreiblinie (wie am EEG-Gerät): die Seite steht, eine Linie läuft von links nach rechts
         '      und schreibt die neue Kurve über die alte Seite ----
@@ -46,19 +92,6 @@ Namespace UI
             Public [To] As Double
         End Structure
 
-        Private Function Segments() As List(Of Segment)
-            Dim list As New List(Of Segment)
-            If Not SweepActive Then
-                list.Add(New Segment With {.Origin = StartSeconds, .From = StartSeconds, .To = StartSeconds + WindowSeconds})
-            Else
-                list.Add(New Segment With {.Origin = PageStart, .From = PageStart, .To = PageStart + SweepPos})
-                If Not Double.IsNaN(OldPageStart) AndAlso SweepPos + SweepGap < WindowSeconds Then
-                    list.Add(New Segment With {.Origin = OldPageStart, .From = OldPageStart + SweepPos + SweepGap, .To = OldPageStart + WindowSeconds})
-                End If
-            End If
-            Return list
-        End Function
-
         ''' <summary>Zeile des EKG-Kanals oder −1.</summary>
         Private Function EcgRow() As Integer
             For c = 0 To _channels.Count - 1
@@ -76,7 +109,7 @@ Namespace UI
         ''' <summary>Kanäle in der Reihenfolge der Verschaltung (von oben nach unten) mit Roh- und gefiltertem Signal.</summary>
         Public Sub SetData(channels As IList(Of Derivation), raw As Double()(), filtered As Double()(), fs As Double, peaks As IReadOnlyList(Of Integer))
             _channels = channels : _raw = raw : _filtered = filtered : _fs = fs : _peaks = peaks
-            Invalidate()
+            Touch()
         End Sub
 
         Private ReadOnly Property Sc As Single
@@ -91,140 +124,240 @@ Namespace UI
             Return New RectangleF(lw, 28 * Sc, Width - lw - 78 * Sc, Height - 28 * Sc - 24 * Sc)
         End Function
 
+        Private Function RowAt(y As Integer) As Integer
+            If _filtered Is Nothing Then Return -1
+            Dim plot = PlotRect()
+            Dim row = CInt(Math.Floor((y - plot.Top) / (plot.Height / _filtered.Length)))
+            Return If(row >= 0 AndAlso row < _filtered.Length, row, -1)
+        End Function
+
+        ''' <summary>Liegt der Punkt auf der EKG-Kurve (nicht auf dem Kanalnamen)?</summary>
+        Private Function IsOnEcgTrace(p As Point) As Boolean
+            Dim row = RowAt(p.Y)
+            Return row >= 0 AndAlso _channels(row).Kind = ChannelKind.Ecg AndAlso p.X >= PlotRect().Left AndAlso p.X <= PlotRect().Right
+        End Function
+
         Protected Overrides Sub OnMouseMove(e As MouseEventArgs)
             MyBase.OnMouseMove(e)
-            Cursor = If(e.X < PlotRect().Left, Cursors.Hand, Cursors.Default)
+            Cursor = If(e.X < PlotRect().Left OrElse IsOnEcgTrace(e.Location), Cursors.Hand, Cursors.Default)
         End Sub
 
         Protected Overrides Sub OnMouseClick(e As MouseEventArgs)
             MyBase.OnMouseClick(e)
-            If _filtered Is Nothing Then Return
-            Dim plot = PlotRect()
-            Dim rowH = plot.Height / _filtered.Length
-            Dim row = CInt(Math.Floor((e.Y - plot.Top) / rowH))
-            If row >= 0 AndAlso row < _filtered.Length Then RaiseEvent ChannelClicked(Me, row)
+            Dim row = RowAt(e.Y)
+            If row < 0 Then Return
+            If IsOnEcgTrace(e.Location) Then
+                ' Linksklick: EKG größer, Rechtsklick: kleiner
+                RaiseEvent EcgAmplitudeClicked(Me, If(e.Button = MouseButtons.Right, -1, 1))
+            ElseIf e.Button = MouseButtons.Left Then
+                RaiseEvent ChannelClicked(Me, row)
+            End If
         End Sub
 
-        Protected Overrides Sub OnPaint(e As PaintEventArgs)
-            Dim g = e.Graphics
-            g.Clear(Theme.Paper)
-            If _filtered Is Nothing Then Return
+        Protected Overrides Sub OnResize(e As EventArgs)
+            _version += 1
+            MyBase.OnResize(e)
+        End Sub
 
-            Dim plot = PlotRect()
-            If plot.Width < 40 OrElse plot.Height < 40 Then Return
-            Dim nCh = _filtered.Length
-            Dim rowH = plot.Height / nCh
-            Dim secPx = plot.Width / CSng(WindowSeconds)
-            Dim pxPerMm = DeviceDpi / 25.4F
-
-            ' Kanal-Spalte
-            Using b As New SolidBrush(Theme.LabelColumn)
-                g.FillRectangle(b, 0, 0, plot.Left, Height)
-            End Using
-            If SelectedChannel >= 0 AndAlso SelectedChannel < nCh Then
-                Using b As New SolidBrush(Theme.Selected)
-                    g.FillRectangle(b, 0, plot.Top + rowH * SelectedChannel, Width, rowH)
-                End Using
+        Protected Overrides Sub Dispose(disposing As Boolean)
+            If disposing Then
+                If _back IsNot Nothing Then _back.Dispose()
+                For Each pg In _pages : pg.Bmp.Dispose() : Next
+                _pages.Clear()
             End If
+            MyBase.Dispose(disposing)
+        End Sub
 
-            ' Raster: 0,2 s fein, 1 s kräftig
-            Dim origin = If(SweepActive, PageStart, StartSeconds)
-            Dim firstTick = CInt(Math.Ceiling(origin * 5 - 0.000001))
-            Dim lastTick = CInt(Math.Floor((origin + WindowSeconds) * 5 + 0.000001))
-            Using pMinor As New Pen(Theme.GridMinor, 1), pMajor As New Pen(Theme.GridMajor, 1)
-                For k = firstTick To lastTick
-                    Dim t = k / 5.0
-                    Dim x = plot.Left + CSng((t - origin) * secPx)
-                    Dim major = (k Mod 5 = 0)
-                    g.DrawLine(If(major, pMajor, pMinor), x, plot.Top, x, plot.Bottom)
-                    ' rechts der Schreiblinie steht noch die alte Seite: dort gilt deren Zeit
-                    Dim labelTime = t
-                    Dim showLabel = major
-                    If SweepActive AndAlso t - origin > SweepPos + 0.000001 Then
-                        If Double.IsNaN(OldPageStart) Then showLabel = False Else labelTime = OldPageStart + (t - origin)
-                    End If
-                    ' hinter dem Ende der Aufnahme (letzte, nur teilweise gefüllte Seite) keine Zeitangabe
-                    If labelTime > _filtered(0).Length / _fs + 0.000001 Then showLabel = False
-                    If showLabel Then
-                        Dim lbl = $"{CInt(Math.Round(labelTime))} s"
-                        Dim sz = TextRenderer.MeasureText(lbl, Theme.FontSmall)
-                        TextRenderer.DrawText(g, lbl, Theme.FontSmall, New Point(CInt(x - sz.Width / 2), CInt(plot.Bottom + 4 * Sc)), Theme.TextMuted)
-                    End If
-                Next
-                For c = 1 To nCh - 1
-                    Dim y = plot.Top + rowH * c
-                    g.DrawLine(pMinor, 0, y, Width, y)
-                Next
-            End Using
+        Private Function SubLabelOf(ch As Derivation) As String
+            If ch.Kind = ChannelKind.Ecg Then Return $"{EcgSensitivity:0} µV/mm"
+            Return ch.SubLabel
+        End Function
 
-            ' Kanalnamen (bei vielen Kanälen kleinere Schrift, zweite Zeile nur wenn Platz ist)
-            Dim nameFont = If(rowH < 26 * Sc, Theme.FontSmallBold, Theme.FontChannel)
-            Dim h1 = TextRenderer.MeasureText("X", nameFont).Height
-            Dim h2 = TextRenderer.MeasureText("X", Theme.FontSmall).Height
-            For c = 0 To nCh - 1
-                Dim r As New Rectangle(CInt(10 * Sc), CInt(plot.Top + rowH * c), CInt(plot.Left - 14 * Sc), CInt(rowH))
-                Dim ch = _channels(c)
-                Dim col = If(c = SelectedChannel, Theme.AccentDark, Theme.TextDark)
-                If ch.SubLabel <> "" AndAlso rowH >= h1 + h2 Then
-                    Dim y0 = r.Y + (r.Height - h1 - h2) \ 2
-                    TextRenderer.DrawText(g, ch.Label, nameFont, New Point(r.X, y0), col)
-                    TextRenderer.DrawText(g, ch.SubLabel, Theme.FontSmall, New Point(r.X, y0 + h1), Theme.TextMuted)
-                Else
-                    TextRenderer.DrawText(g, ch.Label, nameFont, r, col, TextFormatFlags.VerticalCenter Or TextFormatFlags.Left)
+        ''' <summary>Bildpunkte je µV für einen Kanal. Das EKG hat eine eigene Empfindlichkeit.</summary>
+        Private Function PixelsPerMicrovolt(ch As Derivation) As Single
+            Dim pxPerMm = DeviceDpi / 25.4F
+            If ch.Kind = ChannelKind.Ecg Then Return pxPerMm / CSng(EcgSensitivity)
+            Return pxPerMm / CSng(Sensitivity) / CSng(ch.ScaleDivisor)
+        End Function
+
+        ''' <summary>Hintergrund: Papier, Kanalnamen, Raster, Eichbalken, Legende – alles, was sich beim Abspielen nicht ändert.</summary>
+        Private Function Background() As Bitmap
+            If _back IsNot Nothing AndAlso _backVersion = _version AndAlso _back.Size = Size Then Return _back
+            If _back IsNot Nothing Then _back.Dispose()
+            _back = New Bitmap(Math.Max(1, Width), Math.Max(1, Height), Imaging.PixelFormat.Format32bppRgb)
+            _backVersion = _version
+            Using g = Graphics.FromImage(_back)
+                g.Clear(Theme.Paper)
+                Dim plot = PlotRect()
+                Dim nCh = _filtered.Length
+                Dim rowH = plot.Height / nCh
+                Dim secPx = plot.Width / CSng(WindowSeconds)
+
+                ' Kanal-Spalte
+                Using b As New SolidBrush(Theme.LabelColumn)
+                    g.FillRectangle(b, 0, 0, plot.Left, Height)
+                End Using
+                If SelectedChannel >= 0 AndAlso SelectedChannel < nCh Then
+                    Using b As New SolidBrush(Theme.Selected)
+                        g.FillRectangle(b, 0, plot.Top + rowH * SelectedChannel, Width, rowH)
+                    End Using
                 End If
-            Next
-            Using pLine As New Pen(Theme.Border, 1)
-                g.DrawLine(pLine, plot.Left, 0, plot.Left, Height)
-            End Using
 
-            ' Kurven
-            g.SmoothingMode = SmoothingMode.AntiAlias
-            Dim oldClip = g.Clip
-            g.SetClip(New RectangleF(plot.Left + 1, plot.Top, plot.Width, plot.Height))
-            Using pRaw As New Pen(Theme.TraceRaw, 1.4F * Sc),
-                  pTrace As New Pen(Theme.Trace, 1.15F * Sc),
-                  pRem As New Pen(Color.FromArgb(215, Theme.Removed), 1.15F * Sc)
-                pRaw.LineJoin = LineJoin.Round : pTrace.LineJoin = LineJoin.Round : pRem.LineJoin = LineJoin.Round
+                ' Raster: 0,2 s fein, 1 s kräftig (die Seiten beginnen immer auf vollen Sekunden)
+                Using pMinor As New Pen(Theme.GridMinor, 1), pMajor As New Pen(Theme.GridMajor, 1)
+                    For k = 0 To CInt(Math.Round(WindowSeconds * 5))
+                        Dim x = plot.Left + CSng(k / 5.0 * secPx)
+                        g.DrawLine(If(k Mod 5 = 0, pMajor, pMinor), x, plot.Top, x, plot.Bottom)
+                    Next
+                    For c = 1 To nCh - 1
+                        Dim y = plot.Top + rowH * c
+                        g.DrawLine(pMinor, 0, y, Width, y)
+                    Next
+                End Using
+
+                ' Kanalnamen (bei vielen Kanälen kleinere Schrift, zweite Zeile nur wenn Platz ist)
+                Dim nameFont = If(rowH < 26 * Sc, Theme.FontSmallBold, Theme.FontChannel)
+                Dim h1 = TextRenderer.MeasureText("X", nameFont).Height
+                Dim h2 = TextRenderer.MeasureText("X", Theme.FontSmall).Height
                 For c = 0 To nCh - 1
-                    Dim cy = plot.Top + rowH * (c + 0.5F)
-                    Dim pxPerUv = pxPerMm / CSng(Sensitivity) / CSng(_channels(c).ScaleDivisor)
-                    For Each seg In Segments()
+                    Dim r As New Rectangle(CInt(10 * Sc), CInt(plot.Top + rowH * c), CInt(plot.Left - 14 * Sc), CInt(rowH))
+                    Dim ch = _channels(c)
+                    Dim col = If(c = SelectedChannel, Theme.AccentDark, Theme.TextDark)
+                    Dim subText = SubLabelOf(ch)
+                    If subText <> "" AndAlso rowH >= h1 + h2 Then
+                        Dim y0 = r.Y + (r.Height - h1 - h2) \ 2
+                        TextRenderer.DrawText(g, ch.Label, nameFont, New Point(r.X, y0), col)
+                        TextRenderer.DrawText(g, subText, Theme.FontSmall, New Point(r.X, y0 + h1), Theme.TextMuted)
+                    Else
+                        TextRenderer.DrawText(g, ch.Label, nameFont, r, col, TextFormatFlags.VerticalCenter Or TextFormatFlags.Left)
+                    End If
+                Next
+                Using pLine As New Pen(Theme.Border, 1)
+                    g.DrawLine(pLine, plot.Left, 0, plot.Left, Height)
+                End Using
+
+                g.SmoothingMode = SmoothingMode.AntiAlias
+                DrawCalibration(g, plot, DeviceDpi / 25.4F)
+                DrawLegend(g, plot)
+            End Using
+            Return _back
+        End Function
+
+        ''' <summary>Kurven einer ganzen Seite ab "origin" auf durchsichtigem Grund.</summary>
+        Private Function Page(origin As Double) As Bitmap
+            _pages.RemoveAll(Function(pg)
+                                 Dim stale = pg.Version <> _version OrElse pg.Bmp.Size <> Size
+                                 If stale Then pg.Bmp.Dispose()
+                                 Return stale
+                             End Function)
+            Dim hit = _pages.Find(Function(pg) pg.Origin = origin)
+            If hit IsNot Nothing Then Return hit.Bmp
+            ' höchstens zwei Seiten merken: die, die geschrieben wird, und die alte daneben
+            While _pages.Count >= 2
+                _pages(0).Bmp.Dispose()
+                _pages.RemoveAt(0)
+            End While
+
+            Dim bmp As New Bitmap(Math.Max(1, Width), Math.Max(1, Height), Imaging.PixelFormat.Format32bppPArgb)
+            Using g = Graphics.FromImage(bmp)
+                g.Clear(Color.Transparent)
+                g.SmoothingMode = SmoothingMode.AntiAlias
+                Dim plot = PlotRect()
+                Dim nCh = _filtered.Length
+                Dim rowH = plot.Height / nCh
+                Dim secPx = plot.Width / CSng(WindowSeconds)
+                Dim seg As New Segment With {.Origin = origin, .From = origin, .To = origin + WindowSeconds}
+                g.SetClip(New RectangleF(plot.Left + 1, plot.Top, plot.Width, plot.Height))
+                Using pRaw As New Pen(Theme.TraceRaw, 1.4F * Sc),
+                      pTrace As New Pen(Theme.Trace, 1.15F * Sc),
+                      pRem As New Pen(Color.FromArgb(215, Theme.Removed), 1.15F * Sc)
+                    pRaw.LineJoin = LineJoin.Round : pTrace.LineJoin = LineJoin.Round : pRem.LineJoin = LineJoin.Round
+                    For c = 0 To nCh - 1
+                        Dim cy = plot.Top + rowH * (c + 0.5F)
+                        Dim pxPerUv = PixelsPerMicrovolt(_channels(c))
                         If ShowRaw Then DrawTrace(g, _raw(c), Nothing, plot, cy, pxPerUv, pRaw, seg)
                         DrawTrace(g, _filtered(c), Nothing, plot, cy, pxPerUv, pTrace, seg)
                         If ShowRemoved Then DrawTrace(g, _raw(c), _filtered(c), plot, cy, pxPerUv, pRem, seg)
                     Next
-                Next
-            End Using
+                End Using
 
-            ' erkannte Herzschläge (EKG-Filter)
-            Dim ecgRowIndex = EcgRow()
-            If _peaks IsNot Nothing AndAlso ecgRowIndex >= 0 Then
-                Using b As New SolidBrush(Theme.ColEcg)
-                    Dim yTop = plot.Top + rowH * ecgRowIndex + 3 * Sc
-                    Dim s = 5 * Sc
-                    For Each seg In Segments()
+                ' erkannte Herzschläge (EKG-Filter)
+                Dim ecgRowIndex = EcgRow()
+                If _peaks IsNot Nothing AndAlso ecgRowIndex >= 0 Then
+                    Using b As New SolidBrush(Theme.ColEcg)
+                        Dim yTop = plot.Top + rowH * ecgRowIndex + 3 * Sc
+                        Dim t5 = 5 * Sc
                         For Each p In _peaks
                             Dim t = p / _fs
                             If t < seg.From OrElse t > seg.To Then Continue For
-                            Dim x = plot.Left + CSng((t - seg.Origin) * secPx)
-                            g.FillPolygon(b, {New PointF(x - s, yTop), New PointF(x + s, yTop), New PointF(x, yTop + s * 1.4F)})
+                            Dim x = plot.Left + CSng((t - origin) * secPx)
+                            g.FillPolygon(b, {New PointF(x - t5, yTop), New PointF(x + t5, yTop), New PointF(x, yTop + t5 * 1.4F)})
                         Next
-                    Next
-                End Using
+                    End Using
+                End If
+            End Using
+            _pages.Add(New PageLayer With {.Bmp = bmp, .Origin = origin, .Version = _version})
+            Return bmp
+        End Function
+
+        ''' <summary>Zeitachse: Sekundenangaben einer Seite zwischen zwei Stellen der Seite (in s ab Seitenanfang).</summary>
+        Private Sub DrawTimeLabels(g As Graphics, plot As RectangleF, origin As Double, fromSec As Double, toSec As Double)
+            Dim secPx = plot.Width / CSng(WindowSeconds)
+            Dim dataEnd = _filtered(0).Length / _fs
+            For k = 0 To CInt(Math.Round(WindowSeconds))
+                If k < fromSec - 0.000001 OrElse k > toSec + 0.000001 Then Continue For
+                Dim t = origin + k
+                ' hinter dem Ende der Aufnahme (letzte, nur teilweise gefüllte Seite) keine Zeitangabe
+                If t > dataEnd + 0.000001 Then Continue For
+                Dim lbl = $"{CInt(Math.Round(t))} s"
+                Dim x = plot.Left + CSng(k * secPx)
+                Dim sz = TextRenderer.MeasureText(lbl, Theme.FontSmall)
+                TextRenderer.DrawText(g, lbl, Theme.FontSmall, New Point(CInt(x - sz.Width / 2), CInt(plot.Bottom + 4 * Sc)), Theme.TextMuted)
+            Next
+        End Sub
+
+        Protected Overrides Sub OnPaint(e As PaintEventArgs)
+            Dim g = e.Graphics
+            If _filtered Is Nothing Then
+                g.Clear(Theme.Paper)
+                Return
+            End If
+            Dim plot = PlotRect()
+            If plot.Width < 40 OrElse plot.Height < 40 Then
+                g.Clear(Theme.Paper)
+                Return
+            End If
+            Dim secPx = plot.Width / CSng(WindowSeconds)
+
+            g.DrawImageUnscaled(Background(), 0, 0)
+
+            If Not SweepActive Then
+                g.DrawImageUnscaled(Page(StartSeconds), 0, 0)
+                DrawTimeLabels(g, plot, StartSeconds, 0, WindowSeconds)
+                Return
             End If
 
-            ' Schreiblinie
-            If SweepActive Then
-                Dim sx = plot.Left + CSng(SweepPos * secPx)
-                Using glow As New Pen(Color.FromArgb(45, Theme.Accent), 7 * Sc), pen As New Pen(Theme.Accent, 2 * Sc)
-                    g.DrawLine(glow, sx, plot.Top, sx, plot.Bottom)
-                    g.DrawLine(pen, sx, plot.Top, sx, plot.Bottom)
-                End Using
+            ' Schreiblinie: links von ihr die neue Seite, rechts (nach einer kleinen Lücke) noch die alte
+            Dim sx = plot.Left + CSng(SweepPos * secPx)
+            Dim oldClip = g.Clip
+            g.SetClip(New RectangleF(plot.Left, plot.Top, Math.Max(0, sx - plot.Left), plot.Height))
+            g.DrawImageUnscaled(Page(PageStart), 0, 0)
+            Dim hasOld = Not Double.IsNaN(OldPageStart) AndAlso SweepPos + SweepGap < WindowSeconds
+            If hasOld Then
+                Dim gx = plot.Left + CSng((SweepPos + SweepGap) * secPx)
+                g.SetClip(New RectangleF(gx, plot.Top, Math.Max(0, plot.Right - gx + 1), plot.Height))
+                g.DrawImageUnscaled(Page(OldPageStart), 0, 0)
             End If
             g.Clip = oldClip
 
-            DrawCalibration(g, plot, pxPerMm)
-            DrawLegend(g, plot)
+            DrawTimeLabels(g, plot, PageStart, 0, SweepPos)
+            If Not Double.IsNaN(OldPageStart) Then DrawTimeLabels(g, plot, OldPageStart, SweepPos + 0.000002, WindowSeconds)
+
+            g.SmoothingMode = SmoothingMode.AntiAlias
+            Using glow As New Pen(Color.FromArgb(45, Theme.Accent), 7 * Sc), pen As New Pen(Theme.Accent, 2 * Sc)
+                g.DrawLine(glow, sx, plot.Top, sx, plot.Bottom)
+                g.DrawLine(pen, sx, plot.Top, sx, plot.Bottom)
+            End Using
         End Sub
 
         ''' <summary>Zeichnet eine Kurve; bei mehr Abtastwerten als Pixeln mit Min/Max-Verdichtung.</summary>

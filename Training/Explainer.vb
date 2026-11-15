@@ -185,7 +185,7 @@ Namespace Training
             End If
 
             ' ---------- Amplitude ----------
-            list.Add(InfoBlock.Para($"Amplitude {SensLabel(s.Sensitivity)}: Eine Welle von {(s.Sensitivity * 10).ToString("0", De)} µV wird 1 cm hoch gezeichnet. (Die Amplitude verändert nur die Darstellung, nicht das Signal.)"))
+            list.Add(InfoBlock.Para($"Amplitude {SensLabel(s.Sensitivity)}: Eine Welle von {(s.Sensitivity * 10).ToString("0", De)} µV wird 1 cm hoch gezeichnet. (Die Amplitude verändert nur die Darstellung der EEG-Kanäle, nicht das Signal. Das EKG hat eine eigene Größe: Klick auf die EKG-Kurve.)"))
 
             ' ---------- Balken: Was kommt durch? ----------
             Dim brain = PartCatalog.All.Where(Function(d) d.IsBrain AndAlso has(d.Part)).ToList()

@@ -31,6 +31,7 @@ Weil die EXE nicht signiert ist, zeigt Windows beim ersten Start eventuell den H
 - **Freier Simulator**: Verschaltung, alle Regler und Signal-Bausteine sind frei wählbar.
 - Ein Klick auf einen **Kanalnamen** wählt den Kanal für die Frequenz-Ansicht und markiert seine Eingänge im Kopfschema der Verschaltung.
 - Die rechte Leiste hat vier Reiter: **Filter** (Filter, Amplitude, Anzeige), **Verschaltung**, **Impedanzen** und **Signal**. Die Lektionen öffnen jeweils den passenden Reiter.
+- Die **Amplitude** gilt nur für die EEG-Kanäle. Das EKG hat eine eigene Größe (Anzeige neben dem Kanalnamen): Klick auf die EKG-Kurve zeichnet sie größer, Rechtsklick kleiner.
 - Im Reiter **Verschaltung** wählt man die Verschaltung. Das Kopfschema zeigt die 21 Elektroden des 10/20-Systems, die Ketten der Verschaltung und für den gewählten Kanal Eingang 1 (blau) und Eingang 2 bzw. Bezug (orange).
 - Im **Kopfschema** (Reiter „Impedanzen“) ändert ein Klick auf eine Elektrode deren Impedanz (Rechtsklick: zurück). Per Tastatur: Pfeiltasten wählen die Elektrode, `+` und `−` ändern den Wert.
 - **Abspielen** startet die Schreiblinie: Die Seite bleibt stehen, die Linie läuft von links nach rechts und schreibt die nächste Seite über die alte, wie am EEG-Gerät. Tastatur:
