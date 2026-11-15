@@ -182,7 +182,7 @@ Namespace Training
                     InfoBlock.Para("Wichtig: Die Amplitude ist KEIN Filter. Das Signal selbst bleibt gleich, nur die Darstellung ändert sich. Deshalb verändert sich die Frequenz-Ansicht nicht."),
                     InfoBlock.Warning("Zu klein dargestellt (große Zahl): niedrige Aktivität wird übersehen. Zu groß dargestellt: Kurven überlappen und werden unlesbar."),
                     InfoBlock.Para("Hinweis: Wie groß ein Millimeter am Bildschirm wirklich ist, hängt von den Monitor-Einstellungen ab."),
-                    InfoBlock.TryIt("Ändern Sie die Amplitude mit den Tasten – und + und beobachten Sie den Eichbalken unten rechts im EEG.")
+                    InfoBlock.TryIt("Ändern Sie die Amplitude mit den Schaltflächen – und + (oder den Tasten + und − auf der Tastatur) und beobachten Sie den Eichbalken unten rechts im EEG.")
                 }})
 
             ' 12 --------------------------------------------------------------

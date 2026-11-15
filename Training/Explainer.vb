@@ -63,7 +63,11 @@ Namespace Training
                     list.Add(InfoBlock.Warning("Diese Einstellung liegt über den Empfehlungen für die Routine-Ableitung (DGKN: höchstens 0,5 Hz ≈ TC 0,3 s; Lehrbuch und ACNS: höchstens 1 Hz). Standard-Filter allenfalls vorübergehend verändern und dokumentieren."))
                 End If
                 If f >= 1.5 AndAlso (has(SignalPart.Delta) OrElse has(SignalPart.Blinks)) Then
-                    list.Add(InfoBlock.Warning("Langsame Hirnwellen (Delta) werden deutlich kleiner – ein Herdbefund kann übersehen werden. Das Augenblinzeln wird schmaler und bekommt einen Gegenschwinger in die andere Richtung."))
+                    ' nur das nennen, was gerade eingeschaltet ist
+                    Dim effects As New List(Of String)
+                    If has(SignalPart.Delta) Then effects.Add("Langsame Hirnwellen (Delta) werden deutlich kleiner – ein Herdbefund kann übersehen werden.")
+                    If has(SignalPart.Blinks) Then effects.Add("Das Augenblinzeln wird schmaler und bekommt einen Gegenschwinger in die andere Richtung.")
+                    list.Add(InfoBlock.Warning(String.Join(" ", effects)))
                 ElseIf has(SignalPart.Sweat) AndAlso pass(SignalPart.Sweat) > 0.5 Then
                     list.Add(InfoBlock.Tip("Das Schwitzartefakt ist noch deutlich sichtbar. Zuerst die Ursache angehen: Raum kühlen, Kopfhaut und Stirn trocknen. Ein stärkerer LowCut beruhigt die Grundlinie, dämpft aber auch echte langsame Hirnwellen."))
                 End If
@@ -144,8 +148,18 @@ Namespace Training
                 Else
                     Dim bpm = beatsDetected / EegSimulator.Duration * 60
                     list.Add(InfoBlock.Para($"EKG-Filter ist AN: {beatsDetected} Herzschläge erkannt (rote Dreiecke, ca. {bpm:0} Schläge/min). Für jeden Kanal wird die gemittelte Artefakt-Schablone bei jedem Schlag abgezogen."))
-                    If has(SignalPart.Ecg) Then
-                        list.Add(InfoBlock.Good("Die EKG-Zacken in den EEG-Kanälen sind weitgehend entfernt – die Hirnaktivität bleibt erhalten."))
+                    If has(SignalPart.Ecg) AndAlso ecgRemaining.HasValue Then
+                        ' Aussage nach dem gemessenen Rest des Artefakts (in P3-O1)
+                        Dim restPct = (ecgRemaining.Value * 100).ToString("0", De)
+                        If ecgRemaining.Value <= 0.3 Then
+                            list.Add(InfoBlock.Good($"Die EKG-Zacken in den EEG-Kanälen sind weitgehend entfernt (gemessener Rest etwa {restPct} %) – die Hirnaktivität bleibt erhalten."))
+                        ElseIf ecgRemaining.Value <= 0.6 Then
+                            list.Add(InfoBlock.Tip($"Die EKG-Zacken sind kleiner geworden, aber noch erkennbar (gemessener Rest etwa {restPct} %). Starke andere Störungen erschweren es, die Schablone sauber zu bilden."))
+                        Else
+                            list.Add(InfoBlock.Warning($"Der EKG-Filter entfernt das Artefakt hier kaum (gemessener Rest etwa {restPct} %). Erst die anderen Störungen beheben."))
+                        End If
+                    ElseIf has(SignalPart.Ecg) Then
+                        list.Add(InfoBlock.Para("Das EKG-Artefakt ist eingeschaltet; die Schablone wird bei jedem Herzschlag abgezogen."))
                     Else
                         list.Add(InfoBlock.Para("Im Moment ist kein EKG-Artefakt eingeschaltet – der Filter hat kaum etwas zu tun."))
                     End If

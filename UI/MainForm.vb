@@ -284,8 +284,8 @@ Namespace UI
             sensRow.Controls.Add(_lblSens)
             sensRow.Controls.Add(_btnSensPlus)
             flow.Controls.Add(sensRow)
-            _tips.SetToolTip(_btnSensMinus, "Kurven kleiner (größere µV/mm-Zahl)")
-            _tips.SetToolTip(_btnSensPlus, "Kurven größer (kleinere µV/mm-Zahl)")
+            _tips.SetToolTip(_btnSensMinus, "Kurven kleiner (größere µV/mm-Zahl). Tastatur: −")
+            _tips.SetToolTip(_btnSensPlus, "Kurven größer (kleinere µV/mm-Zahl). Tastatur: +")
             AddHandler _btnSensMinus.Click, Sub() StepSensitivity(+1)
             AddHandler _btnSensPlus.Click, Sub() StepSensitivity(-1)
 
@@ -790,6 +790,13 @@ Namespace UI
             End If
             ' P = Abspielen/Anhalten, Pfeiltasten und Bild auf/ab = blättern (wenn kein Eingabefeld aktiv ist)
             If TypeOf ActiveControl Is ComboBox OrElse TypeOf ActiveControl Is ImpedanceView Then Return MyBase.ProcessCmdKey(msg, keyData)
+            ' + und − ändern die Amplitude (auch mit Umschalttaste, z. B. + auf englischer Tastatur)
+            If (keyData And (Keys.Control Or Keys.Alt)) = Keys.None Then
+                Select Case keyData And Keys.KeyCode
+                    Case Keys.Add, Keys.Oemplus : StepSensitivity(-1) : Return True
+                    Case Keys.Subtract, Keys.OemMinus : StepSensitivity(+1) : Return True
+                End Select
+            End If
             Select Case keyData
                 Case Keys.PageDown, Keys.Right : MoveView(WindowSec) : Return True
                 Case Keys.PageUp, Keys.Left : MoveView(-WindowSec) : Return True

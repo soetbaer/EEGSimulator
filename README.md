@@ -32,6 +32,7 @@ Weil die EXE nicht signiert ist, zeigt Windows beim ersten Start eventuell den H
 - Im **Kopfschema** (Reiter „Impedanzen“) ändert ein Klick auf eine Elektrode deren Impedanz (Rechtsklick: zurück). Per Tastatur: Pfeiltasten wählen die Elektrode, `+` und `−` ändern den Wert.
 - **Abspielen** startet die Schreiblinie: Die Seite bleibt stehen, die Linie läuft von links nach rechts und schreibt die nächste Seite über die alte, wie am EEG-Gerät. Tastatur:
   - `P` startet und stoppt die Wiedergabe.
+  - `+` / `−` machen die Kurven größer bzw. kleiner (Amplitude).
   - `←` / `→` blättern um 10 s zurück bzw. vor. Die Seiten liegen auf vollen 10 s; die letzte Seite (60–66 s) ist nur teilweise gefüllt.
 
 ## Info, Lizenz und Updates
