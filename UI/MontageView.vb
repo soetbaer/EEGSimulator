@@ -120,7 +120,7 @@ Namespace UI
             Dim in1 = Head.Names(sel.Input1)
             Dim line2 As String
             If sel.Kind = ChannelKind.SingleInput Then
-                line2 = "gegen den Bezugspunkt des Verstärkers"
+                line2 = "gegen die Erdelektrode"
             ElseIf sel.Input2.Length = 1 Then
                 line2 = $"minus {Head.Names(sel.Input2(0))} (Eingang 2)"
             ElseIf _montage.Kind = MontageKind.Average Then

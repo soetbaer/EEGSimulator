@@ -78,6 +78,7 @@ Namespace Services
                     "• Nakamura M, Shibasaki H: Elimination of EKG artifacts from EEG records: a new method of non-cephalic referential EEG recording. Electroencephalogr Clin Neurophysiol 1987; 66: 88–92.",
                     "• Hjorth B: An on-line transformation of EEG scalp potentials into orthogonal source derivations. Electroencephalogr Clin Neurophysiol 1975; 39: 526–530.",
                     "• Metting van Rijn AC, Peper A, Grimbergen CA: High-quality recording of bioelectric events. Part 1: Interference reduction, theory and practice. Med Biol Eng Comput 1990; 28: 389–397.",
+                    "• Usakli AB: Improvement of EEG signal acquisition: an electrical aspect for state of the art of front end. Comput Intell Neurosci 2010; 2010: 630649.",
                     "• Huhta JC, Webster JG: 60-Hz interference in electrocardiography. IEEE Trans Biomed Eng 1973; 20: 91–101.",
                     "• Muthukumaraswamy SD: High-frequency brain activity and muscle artifacts in MEG/EEG: a review and recommendations. Front Hum Neurosci 2013; 7: 138.",
                     "• Goncharova II et al.: EMG contamination of EEG: spectral and topographical characteristics. Clin Neurophysiol 2003; 114: 1580–1593.",

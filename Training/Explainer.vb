@@ -225,34 +225,34 @@ Namespace Training
                     End If
                 Case Montages.Ear
                     If has(SignalPart.Alpha) Then
-                        list.Add(InfoBlock.Warning("Ohrreferenz: Das Ohr liegt selbst im Alpha-Feld. Deshalb erscheint Alpha auch in den vorderen Kanälen (z. B. Fp1-A1) – es stammt aus der Referenz, nicht von der Stirn."))
+                        list.Add(InfoBlock.Warning("Ohrreferenz: In dieser Simulation liegt am Ohr ein Teil des Alpha-Rhythmus an. Deshalb erscheint er klein auch in den vorderen Kanälen (z. B. Fp1-A1) – er stammt aus der Referenz, nicht von der Stirn."))
                     End If
                     If has(SignalPart.Ecg) Then
-                        list.Add(InfoBlock.Warning("Ohrreferenz: Das EKG-Artefakt ist hier besonders groß, weil die Ohren tief und nahe am Hals sitzen – links stärker als rechts. In der Längsreihe ist es viel kleiner."))
+                        list.Add(InfoBlock.Warning("Ohrreferenz: Das EKG-Artefakt ist in dieser Simulation hier am größten, links stärker als rechts. In der Längsreihe ist es viel kleiner."))
                     End If
                     If focus Then
                         list.Add(InfoBlock.Tip("Referenzableitung: Der größte Ausschlag zeigt direkt die Elektrode über dem Herd (C3-A1). Eine Phasenumkehr gibt es hier nicht."))
                     End If
                 Case Montages.Vertex
                     If focus Then
-                        list.Add(InfoBlock.Warning("Vertexreferenz: Cz liegt im Feld des Herdes unter C3. C3-Cz erscheint deshalb kleiner, und in allen anderen Kanälen – auch rechts – taucht ein kleiner Ausschlag in Gegenrichtung auf. Er stammt aus der Referenz."))
+                        list.Add(InfoBlock.Warning("Vertexreferenz: Cz liegt im Feld des Herdes unter C3. C3-Cz erscheint deshalb kleiner, und in fast allen anderen Kanälen – auch rechts – taucht ein kleiner Ausschlag in Gegenrichtung auf. Er stammt aus der Referenz."))
                     End If
                 Case Montages.Average
                     If has(SignalPart.Blinks) Then
                         list.Add(InfoBlock.Warning("Durchschnittsreferenz: Das große Augenblinzeln steckt über die frontalen Elektroden im Durchschnitt und erscheint dadurch umgekehrt in ALLEN Kanälen, sogar okzipital."))
                     End If
                     If focus Then
-                        list.Add(InfoBlock.Tip("Durchschnittsreferenz: Der Herd ist in C3-AV am größten. Weil er den Durchschnitt mitverschiebt, erscheint in den übrigen Kanälen ein kleiner Ausschlag in Gegenrichtung."))
+                        list.Add(InfoBlock.Tip("Durchschnittsreferenz: Der Herd ist in C3-AV am größten. Weil er den Durchschnitt mitverschiebt, erscheint in den Kanälen abseits des Herdes ein kleiner Ausschlag in Gegenrichtung."))
                     End If
                 Case Montages.Source
                     If has(SignalPart.Alpha) Then
-                        list.Add(InfoBlock.Warning("Quellenableitung: Weit ausgebreitete Aktivität wie der Alpha-Rhythmus wird stark verkleinert, weil die Nachbarn fast dasselbe messen. Zur Beurteilung von Amplituden ist sie nicht geeignet."))
+                        list.Add(InfoBlock.Warning("Quellenableitung: Weit ausgebreitete Aktivität wie der Alpha-Rhythmus wird verkleinert, weil die Nachbarn Ähnliches messen."))
                     End If
                     If focus Then
                         list.Add(InfoBlock.Tip("Quellenableitung: Der Herd erscheint fast nur noch in C3-Q. In den Nachbarkanälen können kleine Ausschläge in Gegenrichtung entstehen."))
                     End If
                 Case Montages.Amplifier
-                    list.Add(InfoBlock.Para("Die beiden oberen Kurven sind die einzelnen Verstärkereingänge, 20-fach verkleinert und ungefiltert. Was an beiden gleich ist (Gleichtakt), fehlt in der dritten Kurve: Sie zeigt nur den Unterschied."))
+                    list.Add(InfoBlock.Para("Die beiden oberen Kurven sind die einzelnen Verstärkereingänge, gegen die Erdelektrode gemessen, 20-fach verkleinert und ungefiltert. Was an beiden gleich ist (Gleichtakt), fehlt in der dritten Kurve: Sie zeigt nur den Unterschied."))
             End Select
         End Sub
 

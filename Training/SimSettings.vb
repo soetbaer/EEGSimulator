@@ -132,7 +132,7 @@ Namespace Training
             New PartDescriptor With {.Part = SignalPart.Hum, .Label = "50-Hz-Einstreuung (Netz)", .Color = Theme.ColHum, .IsBrain = False, .TypicalHz = 50,
                 .Hint = "Netzstörung aus der Umgebung. Wie stark sie im EEG erscheint, hängt von den Impedanzen ab."},
             New PartDescriptor With {.Part = SignalPart.Ecg, .Label = "EKG-Artefakt", .Color = Theme.ColEcg, .IsBrain = False, .TypicalHz = 12,
-                .Hint = "Kleine Zacken im Takt des Herzschlags, am größten an tief sitzenden Elektroden und in der Ohrreferenz."}
+                .Hint = "Kleine Zacken im Takt des Herzschlags. In dieser Simulation in der Ohrreferenz am größten."}
         }
 
         Public Function [Get](p As SignalPart) As PartDescriptor
