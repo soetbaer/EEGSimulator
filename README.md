@@ -32,7 +32,7 @@ Weil die EXE nicht signiert ist, zeigt Windows beim ersten Start eventuell den H
 - Im **Kopfschema** (Reiter „Impedanzen“) ändert ein Klick auf eine Elektrode deren Impedanz (Rechtsklick: zurück). Per Tastatur: Pfeiltasten wählen die Elektrode, `+` und `−` ändern den Wert.
 - **Abspielen** startet die Schreiblinie: Die Seite bleibt stehen, die Linie läuft von links nach rechts und schreibt die nächste Seite über die alte, wie am EEG-Gerät. Tastatur:
   - `P` startet und stoppt die Wiedergabe.
-  - `←` / `→` blättern um 10 s zurück bzw. vor.
+  - `←` / `→` blättern um 10 s zurück bzw. vor. Die Seiten liegen auf vollen 10 s; die letzte Seite (60–66 s) ist nur teilweise gefüllt.
 
 ## Info, Lizenz und Updates
 
@@ -53,10 +53,20 @@ Oder in Visual Studio `NeuroSim.vbproj` öffnen und F5 drücken.
 Eine einzelne EXE ohne .NET-Installation auf dem Schulungsrechner erzeugen:
 
 ```
-dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+dotnet publish NeuroSim.vbproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none
 ```
 
 Die EXE liegt danach in `bin\Release\net8.0-windows\win-x64\publish\`.
+
+## Tests und CI
+
+Im Ordner `Tests/` liegt ein Testprojekt (xUnit). Es prüft die Zahlen, auf die sich die Lektionstexte stützen (Filter, Simulation, Voreinstellungen der Lektionen), und die Update-Funktion:
+
+```
+dotnet test Tests/NeuroSim.Tests.vbproj
+```
+
+Bei jedem Push baut GitHub Actions (`.github/workflows/ci.yml`) die Anwendung unter Windows, führt die Tests aus und stellt die fertige `NeuroSim.exe` 14 Tage lang als Artefakt `NeuroSim-exe` bereit.
 
 ## Projektstruktur
 
@@ -67,6 +77,7 @@ Die EXE liegt danach in `bin\Release\net8.0-windows\win-x64\publish\`.
 | `Training/` | Einstellungen, Lektionstexte (`LessonCatalog.vb`), Live-Erklärungen (`Explainer.vb`) |
 | `Services/` | Update-Funktion, Programminformationen, Texte für Quellen und Haftungsausschluss |
 | `Assets/` | Logo (`logo.svg`) und Programm-Icon |
+| `Tests/` | Automatische Tests (xUnit) |
 | `UI/` | Hauptfenster, EEG-Ansicht, Frequenz-Ansicht, Kopfschema für Impedanzen, Schalter, Info-Karte, Farben (`Theme.vb`) |
 
 ## Anpassen
@@ -79,8 +90,8 @@ Die EXE liegt danach in `bin\Release\net8.0-windows\win-x64\publish\`.
 ## Ein Release veröffentlichen
 
 1. In `NeuroSim.vbproj` die `<Version>` erhöhen.
-2. EXE erzeugen (Befehl oben) und in `NeuroSim.exe` umbenennen, falls nötig.
-3. Auf GitHub ein Release mit dem Tag `vX.Y.Z` anlegen und `NeuroSim.exe` anhängen.
+2. EXE erzeugen (Befehl oben) oder das Artefakt `NeuroSim-exe` aus dem CI-Lauf des Commits herunterladen.
+3. Auf GitHub ein Release mit dem Tag `X.Y.Z` oder `vX.Y.Z` anlegen und `NeuroSim.exe` anhängen.
 
 Die Update-Funktion vergleicht die Tag-Nummer mit der Programmversion und lädt die angehängte `.exe`.
 

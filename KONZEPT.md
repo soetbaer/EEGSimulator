@@ -7,7 +7,7 @@ Grundsatz: **Erst sehen, dann verstehen.** Keine Formeln im Vordergrund, sondern
 
 | Schritt | Kernidee | Bild / Vergleich |
 |---|---|---|
-| Was ist ein EEG? | Winzige Spannungen (µV), jeder Kanal = Differenz zweier Elektroden | AA-Batterie hat ca. 30.000-mal mehr Spannung als eine Alpha-Welle |
+| Was ist ein EEG? | Winzige Spannungen (µV), jeder Kanal = Differenz zweier Elektroden | AA-Batterie hat ca. 50.000-mal mehr Spannung als eine Alpha-Welle von 30 µV |
 | Frequenz | Hz = Wellen pro Sekunde | Wellen zwischen zwei Sekundenlinien zählen |
 | Frequenzbänder | Delta, Theta, Alpha, Beta | Lange Meereswellen gegenüber kleinem Gekräusel |
 | Filter allgemein | Ein Filter ist ein **Sieb** | Rote Schattierung = „wird gedämpft“, türkise Linie = „kommt durch“ |
@@ -52,8 +52,8 @@ Wiederkehrende Elemente in jeder Lektion:
 | Theta | – |
 | Alpha | okzipital, an- und abschwellend |
 | Beta | – |
-| Spike-Wave | oberflächennegativ, Herd C3 mit Phasenumkehr |
-| Augenblinzeln | Fp positiv, Ausschlag nach unten |
+| Spike-Wave | oberflächennegativ, Herd C3 mit Phasenumkehr; Spitze etwa 16 ms breit (Halbwertsbreite), HiCut 15 Hz nimmt ihr rund 40 % der Höhe |
+| Augenblinzeln | Fp positiv, Ausschlag nach unten; steht für „Augen offen“ und ist in den Lektionen nie zusammen mit Alpha voreingestellt |
 | Schwitzartefakt | sehr langsam (0,1–0,4 Hz), je Kanal unabhängig |
 | EMG | schubweise, frontal |
 | 50-Hz-Einstreuung | Stärke je Kanal folgt aus dem Impedanz-Unterschied der beiden Elektroden |
@@ -113,6 +113,8 @@ Störungen entstehen in der Simulation an der einzelnen Elektrode. Im Kanal ersc
 | Widerstandsrauschen | Wird nur berechnet und angezeigt (bei 25 kΩ und 70 Hz Bandbreite etwa 0,2 µV) | Physikalische Formel für thermisches Rauschen |
 | Gelbrücke F3–C3 | Kanal F3-C3 behält 8 % der Amplitude | Lehrbuchbeschreibung der Salzbrücke (flacher Kanal) |
 
+Empfehlung in den Lektionen: unter 10 kΩ und möglichst gleichmäßig, nicht unter 1 kΩ. Der Impedanztest soll vor und nach der Ableitung mit aufgezeichnet werden, bei Artefakten auch zwischendurch; die meisten Geräte speichern ihn automatisch in der Aufnahme.
+
 Grenzwerte im Kopfschema: grün 1–5 kΩ, gelb bis 10 kΩ, rot über 10 kΩ, blau unter 1 kΩ (DGKN 2024: 1–10 kΩ, möglichst gleichmäßig; ACNS: Ziel 5 kΩ, bis 10 kΩ akzeptabel, nicht unter 100 Ω).
 
 ### Bewusste Vereinfachungen
@@ -124,4 +126,5 @@ Grenzwerte im Kopfschema: grün 1–5 kΩ, gelb bis 10 kΩ, rot über 10 kΩ, bl
 - Die Flankensteilheit der Filter ist geräteabhängig. Hier: LowCut 6 dB/Oktave (wie ein RC-Glied), HiCut 12 dB/Oktave.
 - Die Signale sind synthetisch. Amplituden und Verteilung sind typisch gewählt, bilden aber keinen einzelnen Patienten ab.
 - Gezeigt wird nur ein Ausschnitt einer Längsreihe (parasagittale Ketten rechts und links plus EKG), keine vollständige Montage mit mindestens 18 Kanälen.
+- Alpha und Augenblinzeln lassen sich im freien Simulator gleichzeitig einschalten, obwohl das in einer echten Ableitung meist nicht zusammen vorkommt. Die Live-Erklärung weist darauf hin.
 - Die Balken „So viel kommt durch“ werden am simulierten Baustein gemessen (Effektivwert, bei Spikes, Blinzeln und EKG die Spitzenhöhe).

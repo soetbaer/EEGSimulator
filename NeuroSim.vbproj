@@ -25,6 +25,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Das Testprojekt liegt im Unterordner Tests und gehört nicht zur Anwendung -->
+    <Compile Remove="Tests\**" />
+    <EmbeddedResource Remove="Tests\**" />
+    <None Remove="Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Lizenztext wird in die EXE eingebettet und im Info-Dialog angezeigt -->
     <EmbeddedResource Include="LICENSE" LogicalName="NeuroSim.LICENSE.txt" />
     <EmbeddedResource Include="Assets/NeuroSim.ico" LogicalName="NeuroSim.Icon.ico" />

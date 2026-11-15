@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Bauen
+        run: dotnet build NeuroSim.vbproj -c Release
+
+      - name: Tests
+        run: dotnet test Tests/NeuroSim.Tests.vbproj -c Release
+
+      - name: EXE erzeugen
+        run: dotnet publish NeuroSim.vbproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none
+
+      - name: EXE bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeuroSim-exe
+          path: bin/Release/net8.0-windows/win-x64/publish/NeuroSim.exe
+          if-no-files-found: error
+          retention-days: 14
