@@ -3,6 +3,7 @@ Option Strict On
 Imports System.Drawing
 Imports System.Drawing.Drawing2D
 Imports System.Windows.Forms
+Imports NeuroSim.Simulation
 
 Namespace UI
 
@@ -14,18 +15,16 @@ Namespace UI
 
         Private _raw As Double()()
         Private _filtered As Double()()
-        Private _names As String() = Array.Empty(Of String)()
+        Private _channels As IList(Of Derivation) = Array.Empty(Of Derivation)()
         Private _peaks As IReadOnlyList(Of Integer)
         Private _fs As Double = 500
 
-        Public Property EcgChannel As Integer = -1
-        Public Property EcgScaleDivisor As Double = 10
         Public Property Sensitivity As Double = 7          ' µV/mm
         Public Property WindowSeconds As Double = 10
         Public Property StartSeconds As Double
         Public Property ShowRaw As Boolean
         Public Property ShowRemoved As Boolean
-        Public Property SelectedChannel As Integer = 3
+        Public Property SelectedChannel As Integer
 
         ' ---- Schreiblinie (wie am EEG-Gerät): die Seite steht, eine Linie läuft von links nach rechts
         '      und schreibt die neue Kurve über die alte Seite ----
@@ -60,15 +59,12 @@ Namespace UI
             Return list
         End Function
 
-        ''' <summary>
-        ''' Reihenfolge der Kanäle von oben nach unten (Kanalindex je Zeile).
-        ''' DGKN-Empfehlung zu Ableiteprogrammen: rechts über links, anterior über posterior, EKG zuletzt.
-        ''' </summary>
-        Public Property DisplayOrder As Integer() = {4, 5, 6, 7, 0, 1, 2, 3, 8}
-
-        Private Function RowOf(channel As Integer) As Integer
-            Dim r = Array.IndexOf(DisplayOrder, channel)
-            Return If(r < 0, channel, r)
+        ''' <summary>Zeile des EKG-Kanals oder −1.</summary>
+        Private Function EcgRow() As Integer
+            For c = 0 To _channels.Count - 1
+                If _channels(c).Kind = ChannelKind.Ecg Then Return c
+            Next
+            Return -1
         End Function
 
         Public Sub New()
@@ -77,8 +73,9 @@ Namespace UI
             BackColor = Theme.Paper
         End Sub
 
-        Public Sub SetData(names As String(), raw As Double()(), filtered As Double()(), fs As Double, peaks As IReadOnlyList(Of Integer))
-            _names = names : _raw = raw : _filtered = filtered : _fs = fs : _peaks = peaks
+        ''' <summary>Kanäle in der Reihenfolge der Verschaltung (von oben nach unten) mit Roh- und gefiltertem Signal.</summary>
+        Public Sub SetData(channels As IList(Of Derivation), raw As Double()(), filtered As Double()(), fs As Double, peaks As IReadOnlyList(Of Integer))
+            _channels = channels : _raw = raw : _filtered = filtered : _fs = fs : _peaks = peaks
             Invalidate()
         End Sub
 
@@ -105,7 +102,7 @@ Namespace UI
             Dim plot = PlotRect()
             Dim rowH = plot.Height / _filtered.Length
             Dim row = CInt(Math.Floor((e.Y - plot.Top) / rowH))
-            If row >= 0 AndAlso row < _filtered.Length Then RaiseEvent ChannelClicked(Me, DisplayOrder(row))
+            If row >= 0 AndAlso row < _filtered.Length Then RaiseEvent ChannelClicked(Me, row)
         End Sub
 
         Protected Overrides Sub OnPaint(e As PaintEventArgs)
@@ -126,7 +123,7 @@ Namespace UI
             End Using
             If SelectedChannel >= 0 AndAlso SelectedChannel < nCh Then
                 Using b As New SolidBrush(Theme.Selected)
-                    g.FillRectangle(b, 0, plot.Top + rowH * RowOf(SelectedChannel), Width, rowH)
+                    g.FillRectangle(b, 0, plot.Top + rowH * SelectedChannel, Width, rowH)
                 End Using
             End If
 
@@ -160,19 +157,20 @@ Namespace UI
                 Next
             End Using
 
-            ' Kanalnamen
+            ' Kanalnamen (bei vielen Kanälen kleinere Schrift, zweite Zeile nur wenn Platz ist)
+            Dim nameFont = If(rowH < 26 * Sc, Theme.FontSmallBold, Theme.FontChannel)
+            Dim h1 = TextRenderer.MeasureText("X", nameFont).Height
+            Dim h2 = TextRenderer.MeasureText("X", Theme.FontSmall).Height
             For c = 0 To nCh - 1
-                Dim r As New Rectangle(CInt(10 * Sc), CInt(plot.Top + rowH * RowOf(c)), CInt(plot.Left - 14 * Sc), CInt(rowH))
-                Dim txt = _names(c)
+                Dim r As New Rectangle(CInt(10 * Sc), CInt(plot.Top + rowH * c), CInt(plot.Left - 14 * Sc), CInt(rowH))
+                Dim ch = _channels(c)
                 Dim col = If(c = SelectedChannel, Theme.AccentDark, Theme.TextDark)
-                If c = EcgChannel Then
-                    Dim h1 = TextRenderer.MeasureText(txt, Theme.FontChannel).Height
-                    Dim h2 = TextRenderer.MeasureText("X", Theme.FontSmall).Height
+                If ch.SubLabel <> "" AndAlso rowH >= h1 + h2 Then
                     Dim y0 = r.Y + (r.Height - h1 - h2) \ 2
-                    TextRenderer.DrawText(g, txt, Theme.FontChannel, New Point(r.X, y0), col)
-                    TextRenderer.DrawText(g, $"Skala 1:{EcgScaleDivisor:0}", Theme.FontSmall, New Point(r.X, y0 + h1), Theme.TextMuted)
+                    TextRenderer.DrawText(g, ch.Label, nameFont, New Point(r.X, y0), col)
+                    TextRenderer.DrawText(g, ch.SubLabel, Theme.FontSmall, New Point(r.X, y0 + h1), Theme.TextMuted)
                 Else
-                    TextRenderer.DrawText(g, txt, Theme.FontChannel, r, col, TextFormatFlags.VerticalCenter Or TextFormatFlags.Left)
+                    TextRenderer.DrawText(g, ch.Label, nameFont, r, col, TextFormatFlags.VerticalCenter Or TextFormatFlags.Left)
                 End If
             Next
             Using pLine As New Pen(Theme.Border, 1)
@@ -188,9 +186,8 @@ Namespace UI
                   pRem As New Pen(Color.FromArgb(215, Theme.Removed), 1.15F * Sc)
                 pRaw.LineJoin = LineJoin.Round : pTrace.LineJoin = LineJoin.Round : pRem.LineJoin = LineJoin.Round
                 For c = 0 To nCh - 1
-                    Dim cy = plot.Top + rowH * (RowOf(c) + 0.5F)
-                    Dim pxPerUv = pxPerMm / CSng(Sensitivity)
-                    If c = EcgChannel Then pxPerUv /= CSng(EcgScaleDivisor)
+                    Dim cy = plot.Top + rowH * (c + 0.5F)
+                    Dim pxPerUv = pxPerMm / CSng(Sensitivity) / CSng(_channels(c).ScaleDivisor)
                     For Each seg In Segments()
                         If ShowRaw Then DrawTrace(g, _raw(c), Nothing, plot, cy, pxPerUv, pRaw, seg)
                         DrawTrace(g, _filtered(c), Nothing, plot, cy, pxPerUv, pTrace, seg)
@@ -200,9 +197,10 @@ Namespace UI
             End Using
 
             ' erkannte Herzschläge (EKG-Filter)
-            If _peaks IsNot Nothing AndAlso EcgChannel >= 0 Then
+            Dim ecgRowIndex = EcgRow()
+            If _peaks IsNot Nothing AndAlso ecgRowIndex >= 0 Then
                 Using b As New SolidBrush(Theme.ColEcg)
-                    Dim yTop = plot.Top + rowH * RowOf(EcgChannel) + 3 * Sc
+                    Dim yTop = plot.Top + rowH * ecgRowIndex + 3 * Sc
                     Dim s = 5 * Sc
                     For Each seg In Segments()
                         For Each p In _peaks

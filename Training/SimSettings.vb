@@ -17,8 +17,11 @@ Namespace Training
         Public Property Parts As New HashSet(Of SignalPart)
         Public Property ShowRaw As Boolean
         Public Property ShowRemoved As Boolean
-        Public Property SelectedChannel As Integer = 3
-        ''' <summary>Elektrodenimpedanzen in kΩ (Reihenfolge wie EegSimulator.ElectrodeNames).</summary>
+        ''' <summary>Gewählte Verschaltung (Montage), siehe Montages.</summary>
+        Public Property MontageId As String = Montages.Excerpt
+        ''' <summary>Index des gewählten Kanals in der aktuellen Verschaltung (für die Frequenz-Ansicht).</summary>
+        Public Property SelectedChannel As Integer = 7
+        ''' <summary>Elektrodenimpedanzen in kΩ (Reihenfolge wie Head.Names).</summary>
         Public Property Impedances As Double() = CType(EegSimulator.DefaultImpedances.Clone(), Double())
         ''' <summary>Gelbrücke zwischen F3 und C3 (zu niedrige Impedanz).</summary>
         Public Property SaltBridge As Boolean
@@ -31,7 +34,20 @@ Namespace Training
 
         ''' <summary>Setzt die Impedanz einer Elektrode (für Lektions-Voreinstellungen).</summary>
         Public Function WithImpedance(electrodeName As String, kOhm As Double) As SimSettings
-            Impedances(Array.IndexOf(EegSimulator.ElectrodeNames, electrodeName)) = kOhm
+            Impedances(Head.Index(electrodeName)) = kOhm
+            Return Me
+        End Function
+
+        Public ReadOnly Property Montage As Montage
+            Get
+                Return Montages.Get(MontageId)
+            End Get
+        End Property
+
+        ''' <summary>Wählt Verschaltung und Kanal (nach Beschriftung, z. B. "P3-O1").</summary>
+        Public Function WithMontage(montageId As String, channelLabel As String) As SimSettings
+            Me.MontageId = montageId
+            SelectedChannel = Math.Max(0, Montage.IndexOf(channelLabel))
             Return Me
         End Function
 
@@ -98,7 +114,7 @@ Namespace Training
 
         Public ReadOnly All As PartDescriptor() = {
             New PartDescriptor With {.Part = SignalPart.Delta, .Label = "Delta-Herd (1–3 Hz)", .Color = Theme.ColDelta, .IsBrain = True, .TypicalHz = 1.5,
-                .Hint = "Langsame Wellen links zentral (F3-C3 / C3-P3) – z. B. bei einer Läsion."},
+                .Hint = "Langsame Wellen links zentral, am größten unter C3 – z. B. bei einer Läsion."},
             New PartDescriptor With {.Part = SignalPart.Theta, .Label = "Theta (6 Hz)", .Color = Theme.ColTheta, .IsBrain = True, .TypicalHz = 6,
                 .Hint = "Zwischenwellen, z. B. bei Müdigkeit."},
             New PartDescriptor With {.Part = SignalPart.Alpha, .Label = "Alpha (10 Hz)", .Color = Theme.ColAlpha, .IsBrain = True, .TypicalHz = 10,
@@ -106,17 +122,17 @@ Namespace Training
             New PartDescriptor With {.Part = SignalPart.Beta, .Label = "Beta (20 Hz)", .Color = Theme.ColBeta, .IsBrain = True, .TypicalHz = 20,
                 .Hint = "Schnelle, niedrige Wellen, frontal betont."},
             New PartDescriptor With {.Part = SignalPart.Spikes, .Label = "Spikes (spitze Potentiale)", .Color = Theme.ColSpike, .IsBrain = True, .TypicalHz = 25,
-                .Hint = "Oberflächennegative Spike-Wave-Komplexe mit Phasenumkehr bei C3."},
+                .Hint = "Oberflächennegative Spike-Wave-Komplexe, Herd unter C3 (in bipolaren Reihen Phasenumkehr bei C3)."},
             New PartDescriptor With {.Part = SignalPart.Blinks, .Label = "Augenblinzeln", .Color = Theme.ColBlink, .IsBrain = False, .TypicalHz = 1.0,
-                .Hint = "Große Ausschläge nach unten in Fp1-F3 und Fp2-F4 (Fp wird positiv). Tritt bei offenen Augen auf."},
+                .Hint = "Fp1 und Fp2 werden positiv: in der Längsreihe große Ausschläge nach unten in den vordersten Kanälen. Tritt bei offenen Augen auf."},
             New PartDescriptor With {.Part = SignalPart.Sweat, .Label = "Schwitzartefakt / Drift", .Color = Theme.ColDrift, .IsBrain = False, .TypicalHz = 0.25,
                 .Hint = "Sehr langsames Wandern der Grundlinie (unter 0,5 Hz)."},
             New PartDescriptor With {.Part = SignalPart.Emg, .Label = "Muskelartefakt (EMG)", .Color = Theme.ColFast, .IsBrain = False, .TypicalHz = 70,
-                .Hint = "Schnelles 'Gekritzel' durch Muskelanspannung, frontal."},
+                .Hint = "Schnelles 'Gekritzel' durch Muskelanspannung, frontal und temporal."},
             New PartDescriptor With {.Part = SignalPart.Hum, .Label = "50-Hz-Einstreuung (Netz)", .Color = Theme.ColHum, .IsBrain = False, .TypicalHz = 50,
                 .Hint = "Netzstörung aus der Umgebung. Wie stark sie im EEG erscheint, hängt von den Impedanzen ab."},
             New PartDescriptor With {.Part = SignalPart.Ecg, .Label = "EKG-Artefakt", .Color = Theme.ColEcg, .IsBrain = False, .TypicalHz = 12,
-                .Hint = "Kleine Zacken im Takt des Herzschlags."}
+                .Hint = "Kleine Zacken im Takt des Herzschlags, am größten an tief sitzenden Elektroden und in der Ohrreferenz."}
         }
 
         Public Function [Get](p As SignalPart) As PartDescriptor

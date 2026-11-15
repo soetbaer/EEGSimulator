@@ -5,7 +5,9 @@
 **Der EEG-Simulator: Filter, Impedanzen und Artefakte verstehen.**
 
 NeuroSim ist eine interaktive Schulungsanwendung (VB.NET, WinForms, .NET 8) für Medizinische Technologinnen und Technologen für Funktionsdiagnostik (MTF) und weiteres Fachpersonal in der Neurophysiologie.
-Sie zeigt an simulierten EEG-Kurven, wie sich diese Einstellungen auswirken:
+Sie zeigt an simulierten EEG-Kurven, wie die Aufnahmekette arbeitet und wie sich diese Einstellungen auswirken:
+- **Verstärker (Headbox)**: Differenzverstärker, Gleichtaktunterdrückung, die beiden Eingänge eines Kanals einzeln sichtbar
+- **Verschaltungen (Montagen)**: Längsreihe, Querreihe, Ohrreferenz, Vertexreferenz (Cz), Durchschnittsreferenz (AV), Quellenableitung
 - **LowCut (FU, mit Zeitkonstante)**
 - **HiCut (FO)**
 - **Amplitude (Empfindlichkeit)**
@@ -15,7 +17,7 @@ Sie zeigt an simulierten EEG-Kurven, wie sich diese Einstellungen auswirken:
 
 Das didaktische Konzept und die Quellen stehen in [KONZEPT.md](KONZEPT.md).
 
-![NeuroSim](docs/lektion1.png)
+![NeuroSim](docs/willkommen.png)
 
 ## Installation
 
@@ -25,10 +27,11 @@ Weil die EXE nicht signiert ist, zeigt Windows beim ersten Start eventuell den H
 
 ## Bedienung
 
-- **Geführte Lektionen** (12 Kapitel): links lesen, rechts ausprobieren. Mit „Weiter“ geht es zum nächsten Kapitel. „Lektion zurücksetzen“ stellt den Ausgangszustand wieder her.
-- **Freier Simulator**: Alle Regler und Signal-Bausteine sind frei wählbar.
-- Ein Klick auf einen **Kanalnamen** wählt den Kanal für die Frequenz-Ansicht.
-- Die rechte Leiste hat drei Reiter: **Einstellungen** (Filter, Amplitude, Anzeige), **Impedanzen** und **Signal**. Die Lektionen öffnen jeweils den passenden Reiter.
+- **Geführte Lektionen** (23 Lektionen in fünf Kapiteln: Grundlagen, Verstärker und Impedanz, Verschaltungen, Filter, Darstellung und Praxis): links lesen, rechts ausprobieren. Mit „Weiter“ geht es zur nächsten Lektion. „Lektion zurücksetzen“ stellt den Ausgangszustand wieder her.
+- **Freier Simulator**: Verschaltung, alle Regler und Signal-Bausteine sind frei wählbar.
+- Ein Klick auf einen **Kanalnamen** wählt den Kanal für die Frequenz-Ansicht und markiert seine Eingänge im Kopfschema der Verschaltung.
+- Die rechte Leiste hat vier Reiter: **Filter** (Filter, Amplitude, Anzeige), **Verschaltung**, **Impedanzen** und **Signal**. Die Lektionen öffnen jeweils den passenden Reiter.
+- Im Reiter **Verschaltung** wählt man die Verschaltung. Das Kopfschema zeigt die 21 Elektroden des 10/20-Systems, die Ketten der Verschaltung und für den gewählten Kanal Eingang 1 (blau) und Eingang 2 bzw. Bezug (orange).
 - Im **Kopfschema** (Reiter „Impedanzen“) ändert ein Klick auf eine Elektrode deren Impedanz (Rechtsklick: zurück). Per Tastatur: Pfeiltasten wählen die Elektrode, `+` und `−` ändern den Wert.
 - **Abspielen** startet die Schreiblinie: Die Seite bleibt stehen, die Linie läuft von links nach rechts und schreibt die nächste Seite über die alte, wie am EEG-Gerät. Tastatur:
   - `P` startet und stoppt die Wiedergabe.
@@ -75,18 +78,19 @@ Bei jedem Push baut GitHub Actions (`.github/workflows/ci.yml`) die Anwendung un
 | Ordner | Inhalt |
 |---|---|
 | `Dsp/` | Filter (Hochpass/Tiefpass/Notch), FFT, EKG-Template-Subtraktion |
-| `Simulation/` | Generator des simulierten EEG mit allen Bausteinen und Artefakten |
+| `Simulation/` | Generator des simulierten EEG an den 21 Elektroden (`EegSimulator.vb`), Elektroden und ihre Lage (`Head.vb`), Verschaltungen (`Montage.vb`) |
 | `Training/` | Einstellungen, Lektionstexte (`LessonCatalog.vb`), Live-Erklärungen (`Explainer.vb`) |
 | `Services/` | Update-Funktion, Programminformationen, Texte für Quellen und Haftungsausschluss |
 | `Assets/` | Logo (`logo.svg`) und Programm-Icon |
 | `Tests/` | Automatische Tests (xUnit) |
-| `UI/` | Hauptfenster, EEG-Ansicht, Frequenz-Ansicht, Kopfschema für Impedanzen, Schalter, Info-Karte, Farben (`Theme.vb`) |
+| `UI/` | Hauptfenster, EEG-Ansicht, Frequenz-Ansicht, Kopfschemata für Verschaltung und Impedanzen, Schalter, Info-Karte, Farben (`Theme.vb`) |
 
 ## Anpassen
 
 - **Texte der Lektionen**: `Training/LessonCatalog.vb`. Jede Lektion hat Texte und eine Ausgangseinstellung (`Preset`).
 - **Auswahllisten** (Zeitkonstanten, HiCut-Werte, µV/mm): `Training/SimSettings.vb` → `FilterText`
-- **Laborstandards** (z. B. andere Standardwerte): Preset von Lektion 12 bzw. `SimSettings`-Vorgaben
+- **Verschaltungen** (Kanalfolgen, weitere Programme): `Simulation/Montage.vb` → `Montages.All`
+- **Laborstandards** (z. B. andere Standardwerte): Preset der letzten Lektion („Alles zusammen“) bzw. `SimSettings`-Vorgaben
 - **Farben/Schriften**: `UI/Theme.vb`
 
 ## Ein Release veröffentlichen

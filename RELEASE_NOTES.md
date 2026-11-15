@@ -1,24 +1,19 @@
-Überarbeitete Fassung nach fachlicher und technischer Prüfung.
+Zwei neue Kapitel: der Verstärker (Headbox) und die Verschaltungen.
 
 ## Neu
-- Schreiblinie beim Abspielen: Die Seite bleibt stehen, die Linie schreibt die nächste Seite darüber, wie am EEG-Gerät.
-- Die Tasten `+` und `−` ändern die Amplitude.
-- Beim ersten Start fragt NeuroSim einmal, ob es nach neuen Versionen suchen darf. Ohne Zustimmung wird nichts abgefragt; mit Zustimmung höchstens einmal am Tag.
-- Administratoren können die Update-Funktion abschalten (Datei `NeuroSim.noupdate` neben der EXE oder Registry-Wert, siehe README).
+- **Kapitel »Verstärker und Impedanz«:** Wie funktioniert die Headbox? Ein Kanal wird in seine beiden Eingänge und den Ausgang zerlegt. Man sieht, wie die Netzstörung an den Eingängen riesig ist und am Ausgang verschwindet – und warum sie bei ungleichen Impedanzen stehen bleibt.
+- **Kapitel »Verschaltungen«:** Längsreihe, Querreihe, Ohrreferenz, Vertexreferenz (Cz), Durchschnittsreferenz (AV) und Quellenableitung, jeweils mit Stärken und Schwächen. Kanalfolgen nach der DGKN-Empfehlung zu EEG-Ableiteprogrammen (2024).
+- **Verschaltung frei wählbar:** Im neuen Reiter »Verschaltung« lässt sich dasselbe EEG in jeder Verschaltung ansehen. Ein Kopfschema zeigt für den gewählten Kanal Eingang 1 und Eingang 2.
+- **Alle 21 Elektroden des 10/20-Systems:** Die Simulation rechnet jetzt das Potential jeder Elektrode. Auch das Kopfschema der Impedanzen zeigt alle 21 Elektroden.
 
 ## Geändert
-- Impedanz-Empfehlung: unter 10 kΩ und möglichst gleichmäßig; der Impedanztest soll mit aufgezeichnet werden.
-- Spikes sind schärfer simuliert. Die Warnung zum HiCut nennt den gemessenen Höhenverlust.
-- Lektion 4 zeigt offene Augen ohne Alpha; Alpha und Augenblinzeln sind in den Lektionen nicht mehr gemeinsam voreingestellt.
-- Die Live-Erklärung zum LowCut und zum EKG-Filter richtet sich nach dem, was eingeschaltet ist, und nach dem gemessenen Ergebnis.
-- Berufsbezeichnung: Medizinische Technologinnen und Technologen für Funktionsdiagnostik (MTF).
-
-## Behoben
-- Blättern liegt immer auf vollen 10 Sekunden; beim Abspielen wird die Aufnahme bis zum Ende gezeigt.
-- Zeitanzeige im deutschen Zahlenformat.
+- 23 Lektionen in fünf Kapiteln, geordnet nach dem Signalweg: Grundlagen, Verstärker und Impedanz, Verschaltungen, Filter, Darstellung und Praxis.
+- Der Reiter »Einstellungen« heißt jetzt »Filter«.
+- Die Gelbrücke wirkt jetzt auf alle Kanäle, in denen F3 oder C3 vorkommen.
+- Das EKG-Artefakt hängt von der Verschaltung ab: klein in der Längsreihe, groß in der Ohrreferenz.
 
 ## Installation
-`NeuroSim.exe` herunterladen und starten. Keine Installation nötig, läuft auf Windows 10 und 11 (64 Bit). Wer Version 1.0.0 benutzt, kann im Info-Dialog (F1) über „Jetzt nach Updates suchen“ aktualisieren.
+`NeuroSim.exe` herunterladen und starten. Keine Installation nötig, läuft auf Windows 10 und 11 (64 Bit). Wer eine ältere Version benutzt, kann im Info-Dialog (F1) über „Jetzt nach Updates suchen“ aktualisieren.
 
 Die EXE ist nicht signiert. Zeigt Windows „Der Computer wurde durch Windows geschützt“, über **Weitere Informationen → Trotzdem ausführen** starten.
 

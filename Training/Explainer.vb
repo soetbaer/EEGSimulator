@@ -50,6 +50,11 @@ Namespace Training
 
             list.Add(InfoBlock.Heading("Was passiert gerade?"))
 
+            ' ---------- Verschaltung ----------
+            Dim montage = s.Montage
+            list.Add(InfoBlock.Para($"Verschaltung »{montage.Name}«: {montage.Summary}"))
+            AddMontageHints(list, s, montage)
+
             ' ---------- LowCut ----------
             If s.LowCutTc <= 0 Then
                 list.Add(InfoBlock.Para("LowCut (FU) ist AUS: Auch extrem langsame Schwankungen werden voll angezeigt."))
@@ -99,19 +104,19 @@ Namespace Training
             End If
 
             ' ---------- Impedanzen ----------
-            Dim z = CType(s.Impedances.Clone(), Double())
-            If s.SaltBridge Then
-                For Each e In EegSimulator.ChannelElectrodes(EegSimulator.SaltBridgeChannel) : z(e) = 0.5 : Next
-            End If
-            Dim worstCh = 0, worstDiff = 0.0
-            For c = 0 To EegSimulator.ChannelElectrodes.Length - 1
-                Dim d = Math.Abs(z(EegSimulator.ChannelElectrodes(c)(0)) - z(EegSimulator.ChannelElectrodes(c)(1)))
-                If d > worstDiff Then worstDiff = d : worstCh = c
+            ' Im Kanal bleibt die gewichtete Differenz der Elektroden-Störspannungen übrig:
+            ' bei zwei Elektroden der Impedanz-Unterschied, bei Durchschnitt/Quelle der Unterschied zum Mittelwert.
+            Dim z = EegSimulator.EffectiveImpedances(s.Impedances, s.SaltBridge)
+            Dim worstCh = -1, worstDiff = 0.0
+            For c = 0 To montage.Channels.Count - 1
+                If montage.Channels(c).Kind <> ChannelKind.Eeg Then Continue For
+                Dim d = Math.Abs(montage.Channels(c).Combine(z))
+                If worstCh < 0 OrElse d > worstDiff Then worstDiff = d : worstCh = c
             Next
             Dim humUv = worstDiff * EegSimulator.HumMicrovoltPerKiloOhm
             Dim bad = Enumerable.Range(0, z.Length).Where(Function(i) z(i) > 10).ToList()
             Dim mid = Enumerable.Range(0, z.Length).Where(Function(i) z(i) > 5 AndAlso z(i) <= 10).ToList()
-            Dim zLabel = Function(i As Integer) $"{EegSimulator.ElectrodeNames(i)} ({z(i).ToString("0", De)} kΩ)"
+            Dim zLabel = Function(i As Integer) $"{Head.Names(i)} ({z(i).ToString("0", De)} kΩ)"
 
             If bad.Count > 0 Then
                 list.Add(InfoBlock.Warning($"Impedanz zu hoch: {String.Join(", ", bad.Select(zLabel))}. Betroffen sind alle Kanäle mit dieser Elektrode: unruhige Grundlinie und plötzliche Sprünge (Elektroden-Pops), in Nachbarkanälen spiegelbildlich. Das lässt sich nicht wegfiltern – Elektrode neu setzen."))
@@ -123,21 +128,27 @@ Namespace Training
                 list.Add(InfoBlock.Tip($"Impedanz erhöht: {String.Join(", ", mid.Select(zLabel))}. Bis 10 kΩ ist noch zulässig – besser sind niedrigere und vor allem möglichst gleiche Werte an allen Elektroden."))
             End If
             If s.SaltBridge Then
-                list.Add(InfoBlock.Warning("Gelbrücke zwischen F3 und C3: Elektrodenpaste verbindet beide Elektroden leitend. Sie messen fast dasselbe, der Kanal F3-C3 wird nahezu flach. Das kann wie eine echte Abflachung fehlgedeutet werden! Warnzeichen: Impedanz unter 1 kΩ."))
+                list.Add(InfoBlock.Warning("Gelbrücke zwischen F3 und C3: Elektrodenpaste verbindet beide Elektroden leitend. Sie messen fast dasselbe: Ein Kanal zwischen F3 und C3 wird nahezu flach, und in allen anderen Kanälen zeigen F3 und C3 dieselbe Kurve. Das kann wie eine echte Abflachung fehlgedeutet werden! Warnzeichen: Impedanz unter 1 kΩ."))
             End If
 
             ' ---------- 50 Hz ----------
             If s.Notch Then
                 list.Add(InfoBlock.Para("50-Hz-Filter ist AN: Ein schmaler Bereich um 50 Hz wird gezielt herausgeschnitten, alles andere bleibt fast unverändert. Achtung: Bei einer Standard-Ableitung ist der routinemäßige Einsatz nicht zulässig, weil er Elektroden- und Kabeldefekte verdeckt."))
             End If
-            If has(SignalPart.Hum) Then
-                Dim chName = EegSimulator.ChannelNames(worstCh)
+            If has(SignalPart.Hum) AndAlso worstCh >= 0 Then
+                Dim worst = montage.Channels(worstCh)
+                Dim chName = worst.Label
+                Dim diffText = worstDiff.ToString("0", De)
+                ' bei zwei Elektroden ist es ihr Unterschied, sonst der Abstand zum Mittelwert des Bezugs
+                Dim cause = If(worst.Input2.Length = 1,
+                               $"Die beiden Elektroden dieses Kanals unterscheiden sich um {diffText} kΩ",
+                               $"Die Impedanz von {Head.Names(worst.Input1)} weicht um {diffText} kΩ vom Mittelwert ihres Bezugs ab")
                 If humUv < 6 Then
-                    list.Add(InfoBlock.Good($"Netzeinstreuung ist vorhanden, aber kaum sichtbar: Die Impedanzen sind niedrig und fast gleich (größter Unterschied in einem Kanal: {worstDiff.ToString("0", De)} kΩ). Der Verstärker kann die Störung unterdrücken."))
+                    list.Add(InfoBlock.Good($"Netzeinstreuung ist vorhanden, aber kaum sichtbar: Die Impedanzen sind niedrig und fast gleich (größter Unterschied in einem Kanal: {diffText} kΩ). Der Verstärker kann die Störung unterdrücken."))
                 ElseIf s.Notch Then
-                    list.Add(InfoBlock.Good($"Der Netzbrumm (am stärksten in {chName}) ist herausgefiltert. Die Ursache bleibt aber bestehen: {worstDiff.ToString("0", De)} kΩ Impedanz-Unterschied zwischen den beiden Elektroden dieses Kanals."))
+                    list.Add(InfoBlock.Good($"Der Netzbrumm (am stärksten in {chName}) ist herausgefiltert. Die Ursache bleibt aber bestehen: {cause}."))
                 Else
-                    list.Add(InfoBlock.Tip($"Netzbrumm sichtbar (dicke, 'pelzige' Kurve), am stärksten in {chName}: Die beiden Elektroden dieses Kanals unterscheiden sich um {worstDiff.ToString("0", De)} kΩ. Erst die Elektrode verbessern, dann ggf. den 50-Hz-Filter einschalten."))
+                    list.Add(InfoBlock.Tip($"Netzbrumm sichtbar (dicke, 'pelzige' Kurve), am stärksten in {chName}: {cause}. Erst die Elektrode verbessern, dann ggf. den 50-Hz-Filter einschalten."))
                 End If
             End If
 
@@ -149,10 +160,10 @@ Namespace Training
                     Dim bpm = beatsDetected / EegSimulator.Duration * 60
                     list.Add(InfoBlock.Para($"EKG-Filter ist AN: {beatsDetected} Herzschläge erkannt (rote Dreiecke, ca. {bpm:0} Schläge/min). Für jeden Kanal wird die gemittelte Artefakt-Schablone bei jedem Schlag abgezogen."))
                     If has(SignalPart.Ecg) AndAlso ecgRemaining.HasValue Then
-                        ' Aussage nach dem gemessenen Rest des Artefakts (in P3-O1)
+                        ' Aussage nach dem gemessenen Rest des Artefakts im am stärksten betroffenen Kanal
                         Dim restPct = (ecgRemaining.Value * 100).ToString("0", De)
                         If ecgRemaining.Value <= 0.3 Then
-                            list.Add(InfoBlock.Good($"Die EKG-Zacken in den EEG-Kanälen sind weitgehend entfernt (gemessener Rest etwa {restPct} %) – die Hirnaktivität bleibt erhalten."))
+                            list.Add(InfoBlock.Good($"Die EKG-Zacken in den EEG-Kanälen sind weitgehend entfernt (gemessener Rest etwa {restPct} % im am stärksten betroffenen Kanal) – die Hirnaktivität bleibt erhalten."))
                         ElseIf ecgRemaining.Value <= 0.6 Then
                             list.Add(InfoBlock.Tip($"Die EKG-Zacken sind kleiner geworden, aber noch erkennbar (gemessener Rest etwa {restPct} %). Starke andere Störungen erschweren es, die Schablone sauber zu bilden."))
                         Else
@@ -202,6 +213,48 @@ Namespace Training
             End If
             Return list
         End Function
+
+        ''' <summary>Hinweise, die von der Verschaltung UND vom eingeschalteten Signal abhängen.</summary>
+        Private Sub AddMontageHints(list As List(Of InfoBlock), s As SimSettings, montage As Montage)
+            Dim has = Function(p As SignalPart) s.Parts.Contains(p)
+            Dim focus = has(SignalPart.Spikes) OrElse has(SignalPart.Delta)
+            Select Case montage.Id
+                Case Montages.Longitudinal, Montages.Transverse, Montages.Excerpt
+                    If focus Then
+                        list.Add(InfoBlock.Tip("Bipolare Reihe: Der Herd unter C3 zeigt sich als Phasenumkehr – in den beiden Kanälen, in denen C3 vorkommt, schlagen die Kurven in entgegengesetzte Richtung aus."))
+                    End If
+                Case Montages.Ear
+                    If has(SignalPart.Alpha) Then
+                        list.Add(InfoBlock.Warning("Ohrreferenz: Das Ohr liegt selbst im Alpha-Feld. Deshalb erscheint Alpha auch in den vorderen Kanälen (z. B. Fp1-A1) – es stammt aus der Referenz, nicht von der Stirn."))
+                    End If
+                    If has(SignalPart.Ecg) Then
+                        list.Add(InfoBlock.Warning("Ohrreferenz: Das EKG-Artefakt ist hier besonders groß, weil die Ohren tief und nahe am Hals sitzen – links stärker als rechts. In der Längsreihe ist es viel kleiner."))
+                    End If
+                    If focus Then
+                        list.Add(InfoBlock.Tip("Referenzableitung: Der größte Ausschlag zeigt direkt die Elektrode über dem Herd (C3-A1). Eine Phasenumkehr gibt es hier nicht."))
+                    End If
+                Case Montages.Vertex
+                    If focus Then
+                        list.Add(InfoBlock.Warning("Vertexreferenz: Cz liegt im Feld des Herdes unter C3. C3-Cz erscheint deshalb kleiner, und in allen anderen Kanälen – auch rechts – taucht ein kleiner Ausschlag in Gegenrichtung auf. Er stammt aus der Referenz."))
+                    End If
+                Case Montages.Average
+                    If has(SignalPart.Blinks) Then
+                        list.Add(InfoBlock.Warning("Durchschnittsreferenz: Das große Augenblinzeln steckt über die frontalen Elektroden im Durchschnitt und erscheint dadurch umgekehrt in ALLEN Kanälen, sogar okzipital."))
+                    End If
+                    If focus Then
+                        list.Add(InfoBlock.Tip("Durchschnittsreferenz: Der Herd ist in C3-AV am größten. Weil er den Durchschnitt mitverschiebt, erscheint in den übrigen Kanälen ein kleiner Ausschlag in Gegenrichtung."))
+                    End If
+                Case Montages.Source
+                    If has(SignalPart.Alpha) Then
+                        list.Add(InfoBlock.Warning("Quellenableitung: Weit ausgebreitete Aktivität wie der Alpha-Rhythmus wird stark verkleinert, weil die Nachbarn fast dasselbe messen. Zur Beurteilung von Amplituden ist sie nicht geeignet."))
+                    End If
+                    If focus Then
+                        list.Add(InfoBlock.Tip("Quellenableitung: Der Herd erscheint fast nur noch in C3-Q. In den Nachbarkanälen können kleine Ausschläge in Gegenrichtung entstehen."))
+                    End If
+                Case Montages.Amplifier
+                    list.Add(InfoBlock.Para("Die beiden oberen Kurven sind die einzelnen Verstärkereingänge, 20-fach verkleinert und ungefiltert. Was an beiden gleich ist (Gleichtakt), fehlt in der dritten Kurve: Sie zeigt nur den Unterschied."))
+            End Select
+        End Sub
 
     End Module
 

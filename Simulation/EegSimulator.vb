@@ -19,56 +19,44 @@ Namespace Simulation
     End Enum
 
     ''' <summary>
-    ''' Alle Werte sind Potentialdifferenzen (Eingang 1 minus Eingang 2) in µV.
+    ''' Erzeugt ein reproduzierbares, simuliertes EEG an den 21 Elektroden des 10/20-Systems plus EKG.
+    ''' Gerechnet wird zuerst das Potential jeder Elektrode (in µV, gegenüber einem gedachten ruhigen
+    ''' Bezugspunkt). Jede Verschaltung (Montage) bildet daraus ihre Kanäle als Differenzen –
+    ''' so wie ein digitales EEG-Gerät alle Elektroden gleichzeitig aufzeichnet und die Verschaltung
+    ''' erst für die Anzeige berechnet.
     ''' Die Anzeige folgt der EEG-Konvention "negativ nach oben".
-    ''' Erzeugt ein reproduzierbares, simuliertes 8-Kanal-EEG (Längsreihe / "Doppelbanane")
-    ''' plus EKG-Kanal. Jeder Baustein wird einmal vorberechnet und kann dann beliebig
-    ''' ein- und ausgeschaltet werden.
     ''' </summary>
     Public NotInheritable Class EegSimulator
 
         Public Const SampleRate As Double = 500.0
         Public Const SampleCount As Integer = 32768          ' ≈ 65,5 s
-        Public Const EcgChannel As Integer = 8
 
-        Public Shared ReadOnly ChannelNames As String() =
-            {"Fp1-F3", "F3-C3", "C3-P3", "P3-O1", "Fp2-F4", "F4-C4", "C4-P4", "P4-O2", "EKG"}
-
-        ' Räumliche Verteilung (Gewicht pro Kanal) – Reihenfolge wie ChannelNames
-        Private Shared ReadOnly Weights As New Dictionary(Of SignalPart, Double()) From {
-            {SignalPart.Delta, {0.3, 1.0, -0.85, -0.2, 0.05, 0.1, 0.08, 0.05, 0}},      ' Herd links, Phasenumkehr bei C3
-            {SignalPart.Theta, {0.3, 0.6, 0.7, 0.5, 0.3, 0.6, 0.7, 0.5, 0}},
-            {SignalPart.Alpha, {0.1, 0.2, 0.5, 1.0, 0.1, 0.2, 0.55, 1.0, 0}},          ' okzipital betont
-            {SignalPart.Beta, {0.8, 1.0, 0.7, 0.3, 0.8, 1.0, 0.7, 0.3, 0}},            ' frontozentral
-            {SignalPart.Spikes, {0.15, 1.0, -0.9, -0.1, 0, 0.05, 0.05, 0, 0}},         ' oberflächennegativer Spike-Herd C3: F3-C3 positiv, C3-P3 negativ
-            {SignalPart.Blinks, {1.0, 0.25, 0.05, 0, 1.0, 0.25, 0.05, 0, 0}},          ' Fp positiv (Bell-Phänomen) -> Ausschlag nach unten
-            {SignalPart.Sweat, {1.0, 0.6, 0.5, 0.7, 0.9, 0.7, 0.4, 0.8, 0.1}},
-            {SignalPart.Emg, {1.0, 0.5, 0.25, 0.3, 1.0, 0.55, 0.25, 0.35, 0.15}},       ' frontal
-            {SignalPart.Ecg, {0.15, 0.1, 0.35, 0.6, -0.15, -0.1, -0.35, -0.55, 0}}
-        }
-
-        ' ---------- Elektroden und Impedanzen ----------
-        Public Shared ReadOnly ElectrodeNames As String() = {"Fp1", "F3", "C3", "P3", "O1", "Fp2", "F4", "C4", "P4", "O2"}
-
-        ''' <summary>Je EEG-Kanal: (Eingang 1, Eingang 2) als Index in ElectrodeNames.</summary>
-        Public Shared ReadOnly ChannelElectrodes As Integer()() = {
-            New Integer() {0, 1}, New Integer() {1, 2}, New Integer() {2, 3}, New Integer() {3, 4},
-            New Integer() {5, 6}, New Integer() {6, 7}, New Integer() {7, 8}, New Integer() {8, 9}}
-
-        ''' <summary>Gute, leicht unterschiedliche Ausgangswerte in kΩ.</summary>
-        Public Shared ReadOnly DefaultImpedances As Double() = {3, 2, 2, 3, 2, 2, 3, 2, 2, 3}
+        ''' <summary>Gute, leicht unterschiedliche Ausgangswerte in kΩ (Reihenfolge wie Head.Names).</summary>
+        Public Shared ReadOnly DefaultImpedances As Double() =
+            {3, 2, 2, 3, 2, 2, 3, 2, 2, 3, 2, 2, 3, 2, 2, 3, 2, 3, 2, 2, 3}
 
         ''' <summary>
         ''' Beispielwert: so viel 50-Hz-Störspannung entsteht pro kΩ Elektrodenimpedanz (µV/kΩ).
         ''' Entspricht einem Störstrom von etwa 2 nA in der Elektrodenzuleitung (U = I · Z).
-        ''' Im Kanal bleibt die DIFFERENZ der beiden Elektroden übrig – deshalb zählt der Impedanz-Unterschied.
+        ''' Im Kanal bleibt die DIFFERENZ der beteiligten Elektroden übrig – deshalb zählt der Impedanz-Unterschied.
         ''' Der tatsächliche Wert hängt stark von der Umgebung ab.
         ''' </summary>
         Public Const HumMicrovoltPerKiloOhm As Double = 2.0
 
-        ''' <summary>Kanal, der bei eingeschalteter Gelbrücke (F3–C3) kurzgeschlossen wird.</summary>
-        Public Const SaltBridgeChannel As Integer = 1
+        ''' <summary>
+        ''' Beispielwert für die 50-Hz-Gleichtaktstörung am ganzen Körper (µV, Scheitelwert). Sie ist an allen
+        ''' Elektroden gleich und erscheint deshalb in keinem EEG-Kanal, nur an den einzeln gezeigten Verstärkereingängen.
+        ''' </summary>
+        Public Const CommonModeHumMicrovolt As Double = 1000.0
+
+        ''' <summary>Langsames Wandern des Körperpotentials (µV, Effektivwert), ebenfalls an allen Elektroden gleich.</summary>
+        Public Const CommonModeDriftMicrovolt As Double = 400.0
+
+        ''' <summary>Elektroden, die bei eingeschalteter Gelbrücke leitend verbunden sind.</summary>
+        Public Shared ReadOnly SaltBridgeElectrodes As Integer() = {Head.Index("F3"), Head.Index("C3")}
+        ''' <summary>Anteil des Spannungsunterschieds zwischen den beiden Elektroden, der trotz Gelbrücke bleibt.</summary>
         Public Const SaltBridgeRemaining As Double = 0.08
+        Public Const SaltBridgeImpedance As Double = 0.5
 
         ''' <summary>Verstärkung der langsamen Kontakt-Unruhe (0 bei guter Impedanz bis 5 kΩ).</summary>
         Public Shared Function InstabilityGain(kOhm As Double) As Double
@@ -80,19 +68,75 @@ Namespace Simulation
             Return Math.Min(2.0, Math.Max(0, kOhm - 10) / 15.0)
         End Function
 
-        Private ReadOnly _humBase As Double()
-        Private ReadOnly _wander As Double()()      ' je Elektrode: langsame Kontakt-Unruhe (µV bei Gain 1)
-        Private ReadOnly _pops As Double()()        ' je Elektrode: Pops (µV bei Gain 1)
+        ''' <summary>Impedanzen, wie sie die Simulation benutzt: bei Gelbrücke sind die beiden Elektroden niederohmig.</summary>
+        Public Shared Function EffectiveImpedances(impedances As Double(), saltBridge As Boolean) As Double()
+            Dim z = CType(If(impedances, DefaultImpedances).Clone(), Double())
+            If saltBridge Then
+                For Each e In SaltBridgeElectrodes : z(e) = SaltBridgeImpedance : Next
+            End If
+            Return z
+        End Function
 
-        Private ReadOnly _parts As New Dictionary(Of SignalPart, Double()())
-        Private ReadOnly _background As Double()()
+        ' ---------- Zeitverläufe ----------
+        Private ReadOnly _background As Double()()      ' je Elektrode: Grundaktivität und Rauschen
+        Private ReadOnly _delta As Double()
+        Private ReadOnly _thetaSide As Double()()       ' gemeinsamer Anteil links / rechts
+        Private ReadOnly _thetaLocal As Double()()      ' je Elektrode
+        Private ReadOnly _alphaSide As Double()()
+        Private ReadOnly _betaSide As Double()()
+        Private ReadOnly _betaLocal As Double()()
+        Private ReadOnly _spikes As Double()
+        Private ReadOnly _blinks As Double()
+        Private ReadOnly _sweat As Double()()           ' je Elektrode
+        Private ReadOnly _emg As Double()()             ' je Elektrode
+        Private ReadOnly _humBase As Double()
+        Private ReadOnly _beat As Double()
+        Private ReadOnly _ecgNoise As Double()
+        Private ReadOnly _bodyDrift As Double()
+        Private ReadOnly _wander As Double()()          ' je Elektrode: langsame Kontakt-Unruhe (µV bei Gain 1)
+        Private ReadOnly _pops As Double()()            ' je Elektrode: Pops (µV bei Gain 1)
         Private ReadOnly _beats As New List(Of Integer)
 
-        Public ReadOnly Property ChannelCount As Integer
-            Get
-                Return ChannelNames.Length
-            End Get
-        End Property
+        ' ---------- Räumliche Verteilung: Potential je Elektrode in µV (bei Zeitverlauf 1) ----------
+        Private Shared ReadOnly TopoDelta As Double() = Topo(55,
+            "C3", 1.0, "F3", 0.45, "P3", 0.5, "T3", 0.45, "Cz", 0.4, "Fz", 0.15, "Pz", 0.2, "F7", 0.2, "T5", 0.2,
+            "Fp1", 0.1, "O1", 0.1, "A1", 0.15, "C4", 0.05, "Fp2", 0.03, "F4", 0.03, "P4", 0.03)
+        ' oberflächennegativer Herd unter C3 mit kleinem Feld in der Umgebung
+        Private Shared ReadOnly TopoSpikes As Double() = Topo(-160,
+            "C3", 1.0, "F3", 0.25, "P3", 0.3, "T3", 0.3, "Cz", 0.3, "Fz", 0.08, "Pz", 0.1, "F7", 0.08, "T5", 0.1,
+            "Fp1", 0.03, "O1", 0.03, "A1", 0.08, "C4", 0.03)
+        ' Hornhaut-Netzhaut-Dipol und Bell-Phänomen: die Stirnelektroden werden positiv
+        Private Shared ReadOnly TopoBlinks As Double() = Topo(245,
+            "Fp1", 1.0, "Fp2", 1.0, "F7", 0.45, "F8", 0.45, "F3", 0.35, "F4", 0.35, "Fz", 0.4, "T3", 0.1, "T4", 0.1,
+            "C3", 0.08, "C4", 0.08, "Cz", 0.08, "A1", 0.06, "A2", 0.06, "P3", 0.02, "P4", 0.02, "Pz", 0.02, "T5", 0.02, "T6", 0.02)
+        ' Alpha: okzipital am größten; auch die Ohren liegen im Alpha-Feld (wichtig für die Ohrreferenz)
+        Private Shared ReadOnly TopoAlpha As Double() = Topo(70,
+            "O1", 1.0, "O2", 1.0, "T5", 0.6, "T6", 0.6, "Pz", 0.5, "P3", 0.45, "P4", 0.45,
+            "T3", 0.25, "T4", 0.25, "C3", 0.25, "C4", 0.25, "Cz", 0.25, "A1", 0.2, "A2", 0.2,
+            "F3", 0.07, "F4", 0.07, "Fz", 0.07, "F7", 0.07, "F8", 0.07, "Fp1", 0.03, "Fp2", 0.03)
+        Private Shared ReadOnly TopoBeta As Double() = Topo(7,
+            "F3", 1.0, "F4", 1.0, "C3", 1.0, "C4", 1.0, "Fz", 0.9, "Cz", 0.9, "Fp1", 0.7, "Fp2", 0.7, "F7", 0.7, "F8", 0.7,
+            "P3", 0.5, "P4", 0.5, "Pz", 0.5, "T3", 0.5, "T4", 0.5, "T5", 0.35, "T6", 0.35, "O1", 0.3, "O2", 0.3, "A1", 0.25, "A2", 0.25)
+        Private Shared ReadOnly TopoTheta As Double() = Topo(26,
+            "C3", 1.0, "C4", 1.0, "Cz", 0.9, "T3", 0.8, "T4", 0.8, "P3", 0.8, "P4", 0.8, "Pz", 0.8, "F3", 0.7, "F4", 0.7, "Fz", 0.7,
+            "T5", 0.7, "T6", 0.7, "F7", 0.55, "F8", 0.55, "O1", 0.5, "O2", 0.5, "A1", 0.5, "A2", 0.5, "Fp1", 0.4, "Fp2", 0.4)
+        Private Shared ReadOnly TopoSweat As Double() = Topo(45,
+            "Fp1", 1.0, "Fp2", 1.0, "F7", 0.9, "F8", 0.9, "F3", 0.8, "F4", 0.8, "Fz", 0.8, "T3", 0.8, "T4", 0.8, "O1", 0.8, "O2", 0.8,
+            "T5", 0.7, "T6", 0.7, "C3", 0.6, "C4", 0.6, "Cz", 0.6, "P3", 0.6, "P4", 0.6, "Pz", 0.6, "A1", 0.5, "A2", 0.5)
+        Private Shared ReadOnly TopoEmg As Double() = Topo(14,
+            "Fp1", 1.0, "Fp2", 1.0, "F7", 1.0, "F8", 1.0, "T3", 0.9, "T4", 0.9, "A1", 0.6, "A2", 0.6, "F3", 0.5, "F4", 0.5,
+            "T5", 0.5, "T6", 0.5, "O1", 0.35, "O2", 0.35, "Fz", 0.3, "C3", 0.2, "C4", 0.2, "P3", 0.2, "P4", 0.2, "Cz", 0.12, "Pz", 0.12)
+        ' EKG-Artefakt: umso größer, je tiefer die Elektrode am Kopf sitzt (näher am Hals), links etwas stärker als rechts
+        Private Shared ReadOnly TopoEcg As Double() =
+            Enumerable.Range(0, Head.Count).Select(Function(e) 45.0 * (1.0 - Head.Height(e)) - 25.0 * Head.X(e)).ToArray()
+
+        Private Shared Function Topo(amplitude As Double, ParamArray pairs As Object()) As Double()
+            Dim t(Head.Count - 1) As Double
+            For i = 0 To pairs.Length - 2 Step 2
+                t(Head.Index(CStr(pairs(i)))) = amplitude * CDbl(pairs(i + 1))
+            Next
+            Return t
+        End Function
 
         Public Shared ReadOnly Property Duration As Double
             Get
@@ -100,7 +144,7 @@ Namespace Simulation
             End Get
         End Property
 
-        ''' <summary>Tatsächliche Herzschlag-Zeitpunkte (Abtastwerte) – nur für Tests.</summary>
+        ''' <summary>Tatsächliche Herzschlag-Zeitpunkte (Abtastwerte) – für die Messung des EKG-Filters und für Tests.</summary>
         Public ReadOnly Property TrueBeats As IReadOnlyList(Of Integer)
             Get
                 Return _beats
@@ -110,39 +154,33 @@ Namespace Simulation
         Public Sub New(Optional seed As Integer = 4711)
             Dim rng As New Random(seed)
             Dim fs = SampleRate
+            Dim n = Head.Count
 
-            ' ---------- Hintergrund (immer vorhanden) ----------
-            _background = NewSet()
-            For c = 0 To ChannelNames.Length - 1
-                If c = EcgChannel Then
-                    Dim w = WhiteNoise(rng)
-                    For i = 0 To SampleCount - 1 : _background(c)(i) = 2.0 * w(i) : Next
-                Else
-                    Dim slow = BandNoise(rng, 0.5, 8)
-                    Dim fast = WhiteNoise(rng)
-                    For i = 0 To SampleCount - 1
-                        _background(c)(i) = 3.5 * slow(i) + 0.8 * fast(i)
-                    Next
-                End If
-            Next
+            ' ---------- Hintergrund (immer vorhanden), an jeder Elektrode unabhängig ----------
+            _background = PerElectrode(Function(e)
+                                           Dim slow = BandNoise(rng, 0.5, 8)
+                                           Dim fast = WhiteNoise(rng)
+                                           Dim b(SampleCount - 1) As Double
+                                           For i = 0 To SampleCount - 1 : b(i) = 2.5 * slow(i) + 0.55 * fast(i) : Next
+                                           Return b
+                                       End Function)
+            _ecgNoise = WhiteNoise(rng)
 
             ' ---------- Delta: unregelmäßige langsame Wellen (Herd) ----------
-            Dim delta(SampleCount - 1) As Double
+            _delta = New Double(SampleCount - 1) {}
             Dim dF = {0.9, 1.4, 2.1, 2.9}, dA = {1.0, 0.8, 0.55, 0.35}
             Dim dP = dF.Select(Function(f) rng.NextDouble() * 2 * Math.PI).ToArray()
             Dim dEnv = SmoothNoise(rng, 0.2)
             For i = 0 To SampleCount - 1
                 Dim t = i / fs, v = 0.0
                 For k = 0 To dF.Length - 1 : v += dA(k) * Math.Sin(2 * Math.PI * dF(k) * t + dP(k)) : Next
-                delta(i) = v * (0.75 + 0.25 * Math.Tanh(dEnv(i)))
+                _delta(i) = v * (0.75 + 0.25 * Math.Tanh(dEnv(i)))
             Next
-            Normalize(delta)
-            _parts(SignalPart.Delta) = Spread(SignalPart.Delta, delta, delta, 40)
+            Normalize(_delta)
 
-            ' ---------- Theta: zeitweise 6-Hz-Gruppen ----------
-            Dim thL = Oscillation(rng, 6.0, 0.4, 0.25, intermittent:=True)
-            Dim thR = Oscillation(rng, 6.0, 0.4, 0.25, intermittent:=True)
-            _parts(SignalPart.Theta) = Spread(SignalPart.Theta, thL, thR, 28)
+            ' ---------- Theta: zeitweise 6-Hz-Gruppen, je Seite gemeinsam plus örtlicher Anteil ----------
+            _thetaSide = {Oscillation(rng, 6.0, 0.4, 0.25, intermittent:=True), Oscillation(rng, 6.0, 0.4, 0.25, intermittent:=True)}
+            _thetaLocal = PerElectrode(Function(e) Oscillation(rng, 6.0, 0.4, 0.25, intermittent:=True))
 
             ' ---------- Alpha: 10 Hz, an- und abschwellend ----------
             Dim alL(SampleCount - 1) As Double, alR(SampleCount - 1) As Double
@@ -150,72 +188,57 @@ Namespace Simulation
             Dim ph = 0.0
             For i = 0 To SampleCount - 1
                 ph += 2 * Math.PI * (10.0 + 0.25 * fj(i)) / fs
-                Dim e = 0.6 + 0.4 * Math.Tanh(env(i))
-                alL(i) = e * Math.Sin(ph)
-                alR(i) = e * Math.Sin(ph + 0.4)
+                Dim a = 0.6 + 0.4 * Math.Tanh(env(i))
+                alL(i) = a * Math.Sin(ph)
+                alR(i) = a * Math.Sin(ph + 0.4)
             Next
-            _parts(SignalPart.Alpha) = Spread(SignalPart.Alpha, alL, alR, 40)   ' Lehrbuch: Alpha-Amplitude üblicherweise um 30 µV, stark schwankend
+            _alphaSide = {alL, alR}
 
-            ' ---------- Beta: 18–23 Hz, niedrig ----------
-            Dim beL = Oscillation(rng, 18.0, 1.0, 1.0, False)
-            Dim beL2 = Oscillation(rng, 23.0, 1.0, 1.0, False)
-            Dim beR = Oscillation(rng, 18.5, 1.0, 1.0, False)
-            Dim beR2 = Oscillation(rng, 22.0, 1.0, 1.0, False)
-            For i = 0 To SampleCount - 1
-                beL(i) = 0.6 * (beL(i) + beL2(i))
-                beR(i) = 0.6 * (beR(i) + beR2(i))
-            Next
-            _parts(SignalPart.Beta) = Spread(SignalPart.Beta, beL, beR, 9)
+            ' ---------- Beta: 18–23 Hz, niedrig, je Seite gemeinsam plus örtlicher Anteil ----------
+            _betaSide = {Oscillation(rng, 18.0, 1.0, 1.0, False), Oscillation(rng, 18.5, 1.0, 1.0, False)}
+            _betaLocal = PerElectrode(Function(e) Oscillation(rng, 18.0 + 5.0 * rng.NextDouble(), 1.0, 1.0, False))
 
             ' ---------- Spikes (Spike-Wave-Komplexe) ----------
-            Dim sp(SampleCount - 1) As Double
+            _spikes = New Double(SampleCount - 1) {}
             Dim ts = 1.6
             While ts < Duration - 1
-                AddEvent(sp, ts, 0.6, Function(tau) Gauss(tau, 0, 0.007) - 0.3 * Gauss(tau, 0.028, 0.012) + 0.45 * Gauss(tau, 0.2, 0.07))
+                AddEvent(_spikes, ts, 0.6, Function(tau) Gauss(tau, 0, 0.007) - 0.3 * Gauss(tau, 0.028, 0.012) + 0.45 * Gauss(tau, 0.2, 0.07))
                 ts += 1.7 + rng.NextDouble() * 2.3
             End While
-            _parts(SignalPart.Spikes) = Spread(SignalPart.Spikes, sp, sp, 120)
 
             ' ---------- Augenblinzeln ----------
-            Dim bl(SampleCount - 1) As Double
+            _blinks = New Double(SampleCount - 1) {}
             Dim tb = 2.3
             While tb < Duration - 1
-                AddEvent(bl, tb, 0.6, Function(tau) Gauss(tau, 0, 0.085) - 0.08 * Gauss(tau, 0.25, 0.1))
+                AddEvent(_blinks, tb, 0.6, Function(tau) Gauss(tau, 0, 0.085) - 0.08 * Gauss(tau, 0.25, 0.1))
                 tb += 3.5 + rng.NextDouble() * 3.5
             End While
-            _parts(SignalPart.Blinks) = Spread(SignalPart.Blinks, bl, bl, 160)
 
-            ' ---------- Schwitzartefakt: sehr langsame, unabhängige Schwankungen ----------
-            Dim sw = NewSet()
-            For c = 0 To ChannelNames.Length - 1
-                Dim fq = {0.1, 0.22, 0.38}
-                Dim amps = fq.Select(Function(f) 0.5 + rng.NextDouble() * 0.5).ToArray()
-                Dim phs = fq.Select(Function(f) rng.NextDouble() * 2 * Math.PI).ToArray()
-                Dim slow = SmoothNoise(rng, 0.3)
-                Dim buf(SampleCount - 1) As Double
-                For i = 0 To SampleCount - 1
-                    Dim t = i / fs, v = 0.5 * slow(i)
-                    For k = 0 To fq.Length - 1 : v += amps(k) * Math.Sin(2 * Math.PI * fq(k) * t + phs(k)) : Next
-                    buf(i) = v
-                Next
-                Normalize(buf)
-                Dim w = Weights(SignalPart.Sweat)(c) * 70
-                For i = 0 To SampleCount - 1 : sw(c)(i) = w * buf(i) : Next
-            Next
-            _parts(SignalPart.Sweat) = sw
+            ' ---------- Schwitzartefakt: sehr langsame, an jeder Elektrode unabhängige Schwankungen ----------
+            _sweat = PerElectrode(Function(e)
+                                      Dim fq = {0.1, 0.22, 0.38}
+                                      Dim amps = fq.Select(Function(f) 0.5 + rng.NextDouble() * 0.5).ToArray()
+                                      Dim phs = fq.Select(Function(f) rng.NextDouble() * 2 * Math.PI).ToArray()
+                                      Dim slow = SmoothNoise(rng, 0.3)
+                                      Dim buf(SampleCount - 1) As Double
+                                      For i = 0 To SampleCount - 1
+                                          Dim t = i / fs, v = 0.5 * slow(i)
+                                          For k = 0 To fq.Length - 1 : v += amps(k) * Math.Sin(2 * Math.PI * fq(k) * t + phs(k)) : Next
+                                          buf(i) = v
+                                      Next
+                                      Normalize(buf)
+                                      Return buf
+                                  End Function)
 
             ' ---------- Muskelartefakt (EMG): breitbandig schnell, schubweise ----------
-            Dim em = NewSet()
             Dim tension = SmoothNoise(rng, 0.15)
-            For c = 0 To ChannelNames.Length - 1
-                Dim nz = BandNoise(rng, 25, 150)
-                Dim w = Weights(SignalPart.Emg)(c) * 16
-                For i = 0 To SampleCount - 1
-                    Dim e = 0.15 + Math.Pow(Math.Max(0, tension(i) + 0.2), 1.4)
-                    em(c)(i) = w * e * nz(i)
-                Next
-            Next
-            _parts(SignalPart.Emg) = em
+            _emg = PerElectrode(Function(e)
+                                    Dim nz = BandNoise(rng, 25, 150)
+                                    For i = 0 To SampleCount - 1
+                                        nz(i) *= 0.15 + Math.Pow(Math.Max(0, tension(i) + 0.2), 1.4)
+                                    Next
+                                    Return nz
+                                End Function)
 
             ' ---------- 50-Hz-Netzeinstreuung: Grundschwingung (Stärke je Elektrode folgt aus der Impedanz) ----------
             _humBase = New Double(SampleCount - 1) {}
@@ -224,146 +247,208 @@ Namespace Simulation
                 _humBase(i) = (1 + 0.08 * hmEnv(i)) * Math.Sin(2 * Math.PI * 50.0 * i / fs)
             Next
 
-            ' ---------- Herzschlag: EKG-Kanal + EKG-Artefakt in den EEG-Kanälen ----------
-            Dim beat(SampleCount - 1) As Double
+            ' ---------- Herzschlag: EKG-Kanal und EKG-Artefakt an den Elektroden ----------
+            _beat = New Double(SampleCount - 1) {}
             Dim tr = 0.35
             While tr < Duration
                 _beats.Add(CInt(tr * fs))
-                AddEvent(beat, tr, 0.6, AddressOf EcgShape)
+                AddEvent(_beat, tr, 0.6, AddressOf EcgShape)
                 tr += 0.82 + 0.035 * Math.Sin(2 * Math.PI * tr / 4.5) + 0.03 * (rng.NextDouble() - 0.5)
             End While
-            For i = 0 To SampleCount - 1 : _background(EcgChannel)(i) -= 800 * beat(i) : Next
-            _parts(SignalPart.Ecg) = Spread(SignalPart.Ecg, beat, beat, 40)
+
+            ' ---------- Körperpotential: wandert langsam, an allen Elektroden gleich (Gleichtakt) ----------
+            _bodyDrift = BandNoise(rng, 0.08, 0.6)
 
             ' ---------- Kontakt-Unruhe und Pops je Elektrode (wirken nur bei hoher Impedanz) ----------
             Dim rngE As New Random(seed + 1)
-            _wander = New Double(ElectrodeNames.Length - 1)() {}
-            _pops = New Double(ElectrodeNames.Length - 1)() {}
-            For e = 0 To ElectrodeNames.Length - 1
-                ' langsame Schwankungen, überwiegend unter 5 Hz, plus etwas breitbandiges Rauschen
-                Dim slow = BandNoise(rngE, 0.2, 3)
-                Dim white = WhiteNoise(rngE)
-                Dim w(SampleCount - 1) As Double
-                For i = 0 To SampleCount - 1 : w(i) = 8.0 * slow(i) + 1.5 * white(i) : Next
-                _wander(e) = w
-
-                ' Pops: sehr steiler Sprung, langsames Zurücklaufen
-                Dim pp(SampleCount - 1) As Double
-                Dim tp = 1.0 + rngE.NextDouble() * 4
-                While tp < Duration - 1
-                    Dim sign = If(rngE.NextDouble() < 0.5, -1.0, 1.0)
-                    Dim amp = sign * (60 + 60 * rngE.NextDouble())
-                    Dim i0 = CInt(tp * fs)
-                    For i = i0 To Math.Min(SampleCount - 1, i0 + CInt(1.2 * fs))
-                        Dim tau = (i - i0) / fs
-                        pp(i) += amp * (1 - Math.Exp(-tau / 0.004)) * Math.Exp(-tau / 0.15)
-                    Next
-                    tp += 2.5 + rngE.NextDouble() * 6
-                End While
-                _pops(e) = pp
-            Next
+            _wander = PerElectrode(Function(e)
+                                       ' langsame Schwankungen, überwiegend unter 5 Hz, plus etwas breitbandiges Rauschen
+                                       Dim slow = BandNoise(rngE, 0.2, 3)
+                                       Dim white = WhiteNoise(rngE)
+                                       Dim w(SampleCount - 1) As Double
+                                       For i = 0 To SampleCount - 1 : w(i) = 8.0 * slow(i) + 1.5 * white(i) : Next
+                                       Return w
+                                   End Function)
+            _pops = PerElectrode(Function(e)
+                                     ' Pops: sehr steiler Sprung, langsames Zurücklaufen
+                                     Dim pp(SampleCount - 1) As Double
+                                     Dim tp = 1.0 + rngE.NextDouble() * 4
+                                     While tp < Duration - 1
+                                         Dim sign = If(rngE.NextDouble() < 0.5, -1.0, 1.0)
+                                         Dim amp = sign * (60 + 60 * rngE.NextDouble())
+                                         Dim i0 = CInt(tp * fs)
+                                         For i = i0 To Math.Min(SampleCount - 1, i0 + CInt(1.2 * fs))
+                                             Dim tau = (i - i0) / fs
+                                             pp(i) += amp * (1 - Math.Exp(-tau / 0.004)) * Math.Exp(-tau / 0.15)
+                                         Next
+                                         tp += 2.5 + rngE.NextDouble() * 6
+                                     End While
+                                     Return pp
+                                 End Function)
         End Sub
 
-        ''' <summary>
-        ''' Signal eines einzelnen Bausteins in dem Kanal, in dem er am stärksten ist
-        ''' (für die Messung "wie viel kommt durch den Filter").
-        ''' </summary>
-        Public Function PartSignal(part As SignalPart) As Double()
-            If part = SignalPart.Hum Then Return _humBase
-            Dim w = Weights(part)
-            Dim best = 0
-            For c = 1 To w.Length - 1
-                If c <> EcgChannel AndAlso Math.Abs(w(c)) > Math.Abs(w(best)) Then best = c
+        Private Shared Function PerElectrode(make As Func(Of Integer, Double())) As Double()()
+            Dim r = New Double(Head.Count - 1)() {}
+            For e = 0 To Head.Count - 1
+                r(e) = make(e)
             Next
-            Return _parts(part)(best)
-        End Function
-
-        ''' <summary>Signal eines Bausteins in einem bestimmten Kanal.</summary>
-        Public Function PartSignal(part As SignalPart, channel As Integer) As Double()
-            If part = SignalPart.Hum Then Return _humBase
-            Return _parts(part)(channel)
-        End Function
-
-        ''' <summary>
-        ''' Mischt Hintergrund + gewählte Bausteine zu einem Roh-EEG.
-        ''' Die Elektrodenimpedanzen (kΩ, Reihenfolge wie ElectrodeNames) bestimmen,
-        ''' wie stark 50-Hz-Einstreuung, Kontakt-Unruhe und Pops in den Kanälen erscheinen.
-        ''' </summary>
-        Public Function Mix(parts As IEnumerable(Of SignalPart), Optional impedances As Double() = Nothing,
-                            Optional saltBridge As Boolean = False) As Double()()
-            Dim r = NewSet()
-            For c = 0 To r.Length - 1
-                Array.Copy(_background(c), r(c), SampleCount)
-            Next
-            Dim partList = parts.Distinct().ToList()
-            Dim z = If(impedances, DefaultImpedances)
-            Dim humOn = partList.Contains(SignalPart.Hum)
-
-            ' Störungen entstehen an der einzelnen Elektrode; im Kanal erscheint Eingang 1 minus Eingang 2
-            For c = 0 To ChannelElectrodes.Length - 1
-                For k = 0 To 1
-                    Dim e = ChannelElectrodes(c)(k)
-                    Dim sign = If(k = 0, 1.0, -1.0)
-                    Dim ze = z(e)
-                    If saltBridge AndAlso ChannelElectrodes(SaltBridgeChannel).Contains(e) Then ze = 0.5
-                    Dim hum = If(humOn, sign * HumMicrovoltPerKiloOhm * ze, 0.0)
-                    Dim gw = sign * InstabilityGain(ze)
-                    Dim gp = sign * PopGain(ze)
-                    If hum = 0 AndAlso gw = 0 AndAlso gp = 0 Then Continue For
-                    Dim dst = r(c), wn = _wander(e), pp = _pops(e)
-                    For i = 0 To SampleCount - 1
-                        dst(i) += hum * _humBase(i) + gw * wn(i) + gp * pp(i)
-                    Next
-                Next
-            Next
-            If humOn Then
-                Dim ecg = r(EcgChannel)
-                For i = 0 To SampleCount - 1 : ecg(i) += 4.0 * _humBase(i) : Next
-            End If
-
-            For Each p In partList
-                If p = SignalPart.Hum Then Continue For
-                Dim s = _parts(p)
-                For c = 0 To r.Length - 1
-                    Dim src = s(c), dst = r(c)
-                    For i = 0 To SampleCount - 1 : dst(i) += src(i) : Next
-                Next
-            Next
-
-            ' Gelbrücke: F3 und C3 sind leitend verbunden -> kaum noch Spannungsunterschied im Kanal F3-C3
-            If saltBridge Then
-                Dim sb = r(SaltBridgeChannel)
-                For i = 0 To SampleCount - 1 : sb(i) *= SaltBridgeRemaining : Next
-            End If
             Return r
         End Function
 
+        ''' <summary>
+        ''' Typischer Zeitverlauf eines Bausteins (für die Messung "wie viel kommt durch den Filter").
+        ''' Die Höhe spielt dabei keine Rolle, nur die Form.
+        ''' </summary>
+        Public Function PartSignal(part As SignalPart) As Double()
+            Select Case part
+                Case SignalPart.Delta : Return _delta
+                Case SignalPart.Theta : Return _thetaSide(0)
+                Case SignalPart.Alpha : Return _alphaSide(0)
+                Case SignalPart.Beta : Return _betaLocal(Head.Index("F3"))
+                Case SignalPart.Spikes : Return _spikes
+                Case SignalPart.Blinks : Return _blinks
+                Case SignalPart.Sweat : Return _sweat(Head.Index("Fp1"))
+                Case SignalPart.Emg : Return _emg(Head.Index("Fp1"))
+                Case SignalPart.Hum : Return _humBase
+                Case Else : Return _beat
+            End Select
+        End Function
+
+        ''' <summary>So groß ist das EKG-Artefakt in einem Kanal (µV je Einheit des Herzschlag-Verlaufs, mit Vorzeichen).</summary>
+        Public Shared Function EcgArtifactGain(channel As Derivation) As Double
+            If channel.Kind <> ChannelKind.Eeg Then Return 0
+            Return channel.Combine(TopoEcg)
+        End Function
+
+        ''' <summary>EKG-Artefakt allein, so wie es in diesem Kanal erscheint.</summary>
+        Public Function EcgArtifact(channel As Derivation) As Double()
+            Dim g = EcgArtifactGain(channel)
+            Dim a(SampleCount - 1) As Double
+            For i = 0 To SampleCount - 1 : a(i) = g * _beat(i) : Next
+            Return a
+        End Function
+
+        ''' <summary>
+        ''' Potential jeder Elektrode (µV) aus Hintergrund und gewählten Bausteinen.
+        ''' Die Elektrodenimpedanzen (kΩ, Reihenfolge wie Head.Names) bestimmen, wie stark
+        ''' 50-Hz-Einstreuung, Kontakt-Unruhe und Pops an der einzelnen Elektrode entstehen.
+        ''' </summary>
+        Public Function ElectrodePotentials(parts As IEnumerable(Of SignalPart), Optional impedances As Double() = Nothing,
+                                            Optional saltBridge As Boolean = False) As Double()()
+            Dim partSet As New HashSet(Of SignalPart)(parts)
+            Dim z = EffectiveImpedances(impedances, saltBridge)
+            Dim v = New Double(Head.Count - 1)() {}
+
+            For e = 0 To Head.Count - 1
+                Dim dst = CType(_background(e).Clone(), Double())
+                v(e) = dst
+                Dim side = If(Head.Side(e) > 0, 1, 0)
+                Dim midline = (Head.Side(e) = 0)
+
+                If partSet.Contains(SignalPart.Delta) Then AddScaled(dst, _delta, TopoDelta(e))
+                If partSet.Contains(SignalPart.Spikes) Then AddScaled(dst, _spikes, TopoSpikes(e))
+                If partSet.Contains(SignalPart.Blinks) Then AddScaled(dst, _blinks, TopoBlinks(e))
+                If partSet.Contains(SignalPart.Ecg) Then AddScaled(dst, _beat, TopoEcg(e))
+                If partSet.Contains(SignalPart.Sweat) Then AddScaled(dst, _sweat(e), TopoSweat(e))
+                If partSet.Contains(SignalPart.Emg) Then AddScaled(dst, _emg(e), TopoEmg(e))
+                If partSet.Contains(SignalPart.Alpha) Then AddSided(dst, _alphaSide, side, midline, TopoAlpha(e))
+                If partSet.Contains(SignalPart.Theta) Then
+                    AddSided(dst, _thetaSide, side, midline, 0.6 * TopoTheta(e))
+                    AddScaled(dst, _thetaLocal(e), 0.6 * TopoTheta(e))
+                End If
+                If partSet.Contains(SignalPart.Beta) Then
+                    AddSided(dst, _betaSide, side, midline, 0.5 * TopoBeta(e))
+                    AddScaled(dst, _betaLocal(e), 0.85 * TopoBeta(e))
+                End If
+
+                ' Störungen, die an der einzelnen Elektrode entstehen und von ihrer Impedanz abhängen
+                If partSet.Contains(SignalPart.Hum) Then AddScaled(dst, _humBase, HumMicrovoltPerKiloOhm * z(e))
+                AddScaled(dst, _wander(e), InstabilityGain(z(e)))
+                AddScaled(dst, _pops(e), PopGain(z(e)))
+            Next
+
+            ' Gelbrücke: die beiden Elektroden sind leitend verbunden und liegen fast auf demselben Potential
+            If saltBridge Then
+                Dim a = v(SaltBridgeElectrodes(0)), b = v(SaltBridgeElectrodes(1))
+                For i = 0 To SampleCount - 1
+                    Dim mean = (a(i) + b(i)) / 2, halfDiff = (a(i) - b(i)) / 2 * SaltBridgeRemaining
+                    a(i) = mean + halfDiff
+                    b(i) = mean - halfDiff
+                Next
+            End If
+            Return v
+        End Function
+
+        ''' <summary>Gleichtaktspannung am ganzen Körper (µV): an allen Elektroden gleich, in keinem EEG-Kanal sichtbar.</summary>
+        Public Function CommonMode(parts As IEnumerable(Of SignalPart)) As Double()
+            Dim hum = parts.Contains(SignalPart.Hum)
+            Dim cm(SampleCount - 1) As Double
+            For i = 0 To SampleCount - 1
+                cm(i) = CommonModeDriftMicrovolt * _bodyDrift(i) + If(hum, CommonModeHumMicrovolt * _humBase(i), 0.0)
+            Next
+            Return cm
+        End Function
+
+        ''' <summary>Rohsignal aller Kanäle einer Verschaltung (ungefiltert), das EKG eingeschlossen.</summary>
+        Public Function Mix(montage As Montage, parts As IEnumerable(Of SignalPart), Optional impedances As Double() = Nothing,
+                            Optional saltBridge As Boolean = False) As Double()()
+            Dim partList = parts.Distinct().ToList()
+            Dim v = ElectrodePotentials(partList, impedances, saltBridge)
+            Dim cm As Double() = Nothing
+            Dim r = New Double(montage.Channels.Count - 1)() {}
+            For c = 0 To montage.Channels.Count - 1
+                Dim ch = montage.Channels(c)
+                Dim dst(SampleCount - 1) As Double
+                r(c) = dst
+                If ch.Kind = ChannelKind.Ecg Then
+                    FillEcgChannel(dst, partList)
+                    Continue For
+                End If
+                For k = 0 To ch.Electrodes.Length - 1
+                    AddScaled(dst, v(ch.Electrodes(k)), ch.Weights(k))
+                Next
+                If ch.Kind = ChannelKind.SingleInput Then
+                    If cm Is Nothing Then cm = CommonMode(partList)
+                    AddScaled(dst, cm, 1.0)
+                End If
+            Next
+            Return r
+        End Function
+
+        Private Sub FillEcgChannel(dst As Double(), parts As List(Of SignalPart))
+            Dim fp1 = Head.Index("Fp1")
+            Dim hum = parts.Contains(SignalPart.Hum), sweat = parts.Contains(SignalPart.Sweat), emg = parts.Contains(SignalPart.Emg)
+            For i = 0 To SampleCount - 1
+                Dim x = 2.0 * _ecgNoise(i) - 800.0 * _beat(i)
+                If hum Then x += 4.0 * _humBase(i)
+                If sweat Then x += 7.0 * _sweat(fp1)(i)
+                If emg Then x += 2.4 * _emg(fp1)(i)
+                dst(i) = x
+            Next
+        End Sub
+
         ' ================= Hilfsfunktionen =================
+
+        Private Shared Sub AddScaled(dst As Double(), src As Double(), factor As Double)
+            If factor = 0 Then Return
+            For i = 0 To dst.Length - 1 : dst(i) += factor * src(i) : Next
+        End Sub
+
+        ''' <summary>Linke Elektroden bekommen den linken Verlauf, rechte den rechten, die Mittellinie den Mittelwert.</summary>
+        Private Shared Sub AddSided(dst As Double(), sides As Double()(), side As Integer, midline As Boolean, factor As Double)
+            If factor = 0 Then Return
+            If midline Then
+                AddScaled(dst, sides(0), factor / 2)
+                AddScaled(dst, sides(1), factor / 2)
+            Else
+                AddScaled(dst, sides(side), factor)
+            End If
+        End Sub
 
         Public Shared Function EcgShape(tau As Double) As Double
             Return 0.12 * Gauss(tau, -0.18, 0.025) - 0.12 * Gauss(tau, -0.035, 0.01) +
                    1.0 * Gauss(tau, 0, 0.011) - 0.25 * Gauss(tau, 0.035, 0.011) +
                    0.3 * Gauss(tau, 0.26, 0.05)
-        End Function
-
-        Private Shared Function Spread(part As SignalPart, left As Double(), right As Double(), amplitude As Double) As Double()()
-            Dim s = NewSet()
-            Dim w = Weights(part)
-            For c = 0 To ChannelNames.Length - 1
-                Dim src = If(c >= 4 AndAlso c < 8, right, left)
-                Dim f = w(c) * amplitude
-                If f = 0 Then Continue For
-                For i = 0 To SampleCount - 1 : s(c)(i) = f * src(i) : Next
-            Next
-            Return s
-        End Function
-
-        Private Shared Function NewSet() As Double()()
-            Dim s = New Double(ChannelNames.Length - 1)() {}
-            For c = 0 To s.Length - 1
-                s(c) = New Double(SampleCount - 1) {}
-            Next
-            Return s
         End Function
 
         Private Shared Function Gauss(t As Double, mu As Double, sigma As Double) As Double

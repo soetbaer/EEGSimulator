@@ -10,7 +10,7 @@ Imports NeuroSim.Training
 Namespace UI
 
     ''' <summary>
-    ''' Kopfschema mit den Elektroden und ihren Impedanzen – wie die Impedanzanzeige am EEG-Gerät.
+    ''' Kopfschema mit den 21 Elektroden des 10/20-Systems und ihren Impedanzen – wie die Impedanzanzeige am EEG-Gerät.
     ''' Linksklick auf eine Elektrode: nächsthöherer Wert, Rechtsklick: nächstniedrigerer Wert.
     ''' </summary>
     Public Class ImpedanceView
@@ -23,10 +23,18 @@ Namespace UI
         Private _hover As Integer = -1
         Private _focusIdx As Integer        ' per Tastatur gewählte Elektrode
 
-        ' Lage der Elektroden im Kopfschema (0 … 1), Reihenfolge wie EegSimulator.ElectrodeNames
-        Private Shared ReadOnly Pos As PointF() = {
-            New PointF(0.4F, 0.14F), New PointF(0.37F, 0.32F), New PointF(0.36F, 0.5F), New PointF(0.37F, 0.68F), New PointF(0.4F, 0.86F),
-            New PointF(0.6F, 0.14F), New PointF(0.63F, 0.32F), New PointF(0.64F, 0.5F), New PointF(0.63F, 0.68F), New PointF(0.6F, 0.86F)}
+        Private _montage As Montage
+
+        ''' <summary>Aktuelle Verschaltung: ihre bipolaren Ketten werden als dünne Linien eingezeichnet.</summary>
+        Public Property Montage As Montage
+            Get
+                Return _montage
+            End Get
+            Set(value As Montage)
+                _montage = value
+                Invalidate()
+            End Set
+        End Property
 
         Public Shared ReadOnly ColGood As Color = ColorTranslator.FromHtml("#1B7F4B")
         Public Shared ReadOnly ColOkay As Color = ColorTranslator.FromHtml("#E8A317")
@@ -37,7 +45,7 @@ Namespace UI
             SetStyle(ControlStyles.AllPaintingInWmPaint Or ControlStyles.OptimizedDoubleBuffer Or
                      ControlStyles.UserPaint Or ControlStyles.ResizeRedraw Or ControlStyles.Selectable, True)
             BackColor = Theme.Card
-            Size = New Size(272, 300)
+            Size = New Size(272, 290)
             TabStop = True
         End Sub
 
@@ -75,29 +83,23 @@ Namespace UI
             End Get
         End Property
 
-        Private Function HeadRect() As RectangleF
-            Dim legendH = 62 * Sc
-            Dim h = Height - legendH - 14 * Sc
-            Dim w = Math.Min(Width - 8 * Sc, h * 1.0F)
-            Return New RectangleF((Width - w) / 2, 12 * Sc, w, h)
-        End Function
+        Private ReadOnly Property Radius As Single
+            Get
+                Return 13 * Sc
+            End Get
+        End Property
 
-        Private Function Center(i As Integer) As PointF
-            Dim r = HeadRect()
-            Return New PointF(r.Left + Pos(i).X * r.Width, r.Top + Pos(i).Y * r.Height)
+        Private Function Geometry() As HeadGeometry
+            Dim legendH = 50 * Sc
+            Return New HeadGeometry(New RectangleF(0, 0, Width, Height - legendH), Radius + 6 * Sc)
         End Function
 
         Private Function HitTest(p As Point) As Integer
-            Dim rad = 17 * Sc
-            For i = 0 To Pos.Length - 1
-                Dim c = Center(i)
-                If (p.X - c.X) ^ 2 + (p.Y - c.Y) ^ 2 <= rad * rad Then Return i
-            Next
-            Return -1
+            Return Geometry().HitTest(p, Radius + 2 * Sc)
         End Function
 
         Private Function IsBridged(i As Integer) As Boolean
-            Return _saltBridge AndAlso EegSimulator.ChannelElectrodes(EegSimulator.SaltBridgeChannel).Contains(i)
+            Return _saltBridge AndAlso EegSimulator.SaltBridgeElectrodes.Contains(i)
         End Function
 
         Protected Overrides Sub OnMouseMove(e As MouseEventArgs)
@@ -147,17 +149,15 @@ Namespace UI
 
         Protected Overrides Sub OnKeyDown(e As KeyEventArgs)
             MyBase.OnKeyDown(e)
-            Dim col = _focusIdx \ 5, row = _focusIdx Mod 5
             Select Case e.KeyCode
-                Case Keys.Up : row = Math.Max(0, row - 1)
-                Case Keys.Down : row = Math.Min(4, row + 1)
-                Case Keys.Left : col = 0
-                Case Keys.Right : col = 1
+                Case Keys.Up : _focusIdx = HeadGeometry.NeighbourInDirection(_focusIdx, 0, 1)
+                Case Keys.Down : _focusIdx = HeadGeometry.NeighbourInDirection(_focusIdx, 0, -1)
+                Case Keys.Left : _focusIdx = HeadGeometry.NeighbourInDirection(_focusIdx, -1, 0)
+                Case Keys.Right : _focusIdx = HeadGeometry.NeighbourInDirection(_focusIdx, 1, 0)
                 Case Keys.Add, Keys.Oemplus, Keys.Space, Keys.Enter : StepValue(_focusIdx, 1, wrap:=False)
                 Case Keys.Subtract, Keys.OemMinus : StepValue(_focusIdx, -1, wrap:=False)
                 Case Else : Return
             End Select
-            _focusIdx = col * 5 + row
             e.Handled = True
             Invalidate()
         End Sub
@@ -174,48 +174,35 @@ Namespace UI
             Dim g = e.Graphics
             g.Clear(BackColor)
             g.SmoothingMode = SmoothingMode.AntiAlias
-            Dim r = HeadRect()
+            Dim geo = Geometry()
+            geo.DrawHead(g, Sc)
 
-            ' Kopf von oben: Nase, Ohren, Umriss
-            Using fill As New SolidBrush(Theme.LabelColumn), pen As New Pen(Theme.GridMajor, 2 * Sc)
-                Dim nose = {New PointF(r.Left + r.Width / 2 - 10 * Sc, r.Top + 3 * Sc),
-                            New PointF(r.Left + r.Width / 2, r.Top - 9 * Sc),
-                            New PointF(r.Left + r.Width / 2 + 10 * Sc, r.Top + 3 * Sc)}
-                g.FillPolygon(fill, nose)
-                g.DrawLines(pen, nose)
-                g.FillEllipse(fill, r.Left - 6 * Sc, r.Top + r.Height / 2 - 16 * Sc, 12 * Sc, 32 * Sc)
-                g.DrawEllipse(pen, r.Left - 6 * Sc, r.Top + r.Height / 2 - 16 * Sc, 12 * Sc, 32 * Sc)
-                g.FillEllipse(fill, r.Right - 6 * Sc, r.Top + r.Height / 2 - 16 * Sc, 12 * Sc, 32 * Sc)
-                g.DrawEllipse(pen, r.Right - 6 * Sc, r.Top + r.Height / 2 - 16 * Sc, 12 * Sc, 32 * Sc)
-                g.FillEllipse(fill, r)
-                g.DrawEllipse(pen, r)
-            End Using
-
-            ' Ableitungsketten (Längsreihe) als dünne Linien
-            Using pen As New Pen(Theme.GridMajor, 1.5F * Sc)
-                For Each ch In EegSimulator.ChannelElectrodes
-                    g.DrawLine(pen, Center(ch(0)), Center(ch(1)))
-                Next
-            End Using
-
-            ' Gelbrücke
-            If _saltBridge Then
-                Dim ch = EegSimulator.ChannelElectrodes(EegSimulator.SaltBridgeChannel)
-                Using pen As New Pen(Color.FromArgb(170, ColTooLow), 13 * Sc)
-                    pen.StartCap = LineCap.Round : pen.EndCap = LineCap.Round
-                    g.DrawLine(pen, Center(ch(0)), Center(ch(1)))
+            ' Ketten der aktuellen Verschaltung als dünne Linien (nur Kanäle mit genau zwei Elektroden)
+            If _montage IsNot Nothing AndAlso _montage.Kind = MontageKind.Bipolar Then
+                Using pen As New Pen(Theme.GridMajor, 1.5F * Sc)
+                    For Each ch In _montage.Channels
+                        If ch.Kind = ChannelKind.Eeg AndAlso ch.Input2.Length = 1 Then g.DrawLine(pen, geo.Pos(ch.Input1), geo.Pos(ch.Input2(0)))
+                    Next
                 End Using
             End If
 
-            ' Elektroden
-            Dim rad = 16 * Sc
+            ' Gelbrücke
+            If _saltBridge Then
+                Using pen As New Pen(Color.FromArgb(170, ColTooLow), 11 * Sc)
+                    pen.StartCap = LineCap.Round : pen.EndCap = LineCap.Round
+                    g.DrawLine(pen, geo.Pos(EegSimulator.SaltBridgeElectrodes(0)), geo.Pos(EegSimulator.SaltBridgeElectrodes(1)))
+                End Using
+            End If
+
+            ' Elektroden: Wert im Kreis, Name darüber
+            Dim rad = Radius
             Dim de = CultureInfo.GetCultureInfo("de-DE")
-            For i = 0 To Pos.Length - 1
-                Dim c = Center(i)
-                Dim v = If(IsBridged(i), 0.5, _values(i))
+            For i = 0 To Head.Count - 1
+                Dim c = geo.Pos(i)
+                Dim v = If(IsBridged(i), EegSimulator.SaltBridgeImpedance, _values(i))
                 Dim col = ColorFor(v)
                 Dim rr = If(i = _hover, rad + 2 * Sc, rad)
-                Using b As New SolidBrush(col), pen As New Pen(Color.White, 2 * Sc)
+                Using b As New SolidBrush(col), pen As New Pen(Color.White, 1.5F * Sc)
                     g.FillEllipse(b, c.X - rr, c.Y - rr, rr * 2, rr * 2)
                     g.DrawEllipse(pen, c.X - rr, c.Y - rr, rr * 2, rr * 2)
                 End Using
@@ -228,20 +215,18 @@ Namespace UI
                 Dim txt = If(v < 1, "<1", v.ToString("0", de))
                 ' auf Gelb ist weiße Schrift nicht lesbar -> dunkle Schrift
                 Dim txtCol = If(col = ColOkay, ColorTranslator.FromHtml("#3A2A00"), Color.White)
-                TextRenderer.DrawText(g, txt, Theme.FontBold, New Rectangle(CInt(c.X - rad), CInt(c.Y - rad), CInt(rad * 2), CInt(rad * 2)),
+                TextRenderer.DrawText(g, txt, Theme.FontSmallBold, New Rectangle(CInt(c.X - rad), CInt(c.Y - rad), CInt(rad * 2), CInt(rad * 2)),
                                       txtCol, TextFormatFlags.HorizontalCenter Or TextFormatFlags.VerticalCenter Or TextFormatFlags.NoPadding)
-                ' Name außen neben der Elektrode
-                Dim name = EegSimulator.ElectrodeNames(i)
-                Dim sz = TextRenderer.MeasureText(name, Theme.FontSmallBold)
-                Dim leftSide = Pos(i).X < 0.5F
-                Dim tx = If(leftSide, c.X - rad - 2 * Sc - sz.Width, c.X + rad + 2 * Sc)
-                TextRenderer.DrawText(g, name, Theme.FontSmallBold, New Point(CInt(tx), CInt(c.Y - sz.Height / 2)), Theme.TextMuted)
+                Dim name = Head.Names(i)
+                Dim sz = TextRenderer.MeasureText(g, name, Theme.FontTiny, Size.Empty, TextFormatFlags.NoPadding)
+                TextRenderer.DrawText(g, name, Theme.FontTiny, New Point(CInt(c.X - sz.Width / 2), CInt(c.Y - rad - sz.Height + 1 * Sc)), Theme.TextMuted,
+                                      TextFormatFlags.NoPadding)
             Next
 
             ' Legende
             Dim items = {("1–5 kΩ: gut", ColGood), ("bis 10 kΩ: zulässig", ColOkay),
                          ("über 10 kΩ: zu hoch", ColBad), ("unter 1 kΩ: zu niedrig", ColTooLow)}
-            Dim y = Height - 58 * Sc
+            Dim y = Height - 46 * Sc
             Dim colW = Width / 2.0F
             For i = 0 To items.Length - 1
                 Dim x = If(i Mod 2 = 0, 2 * Sc, colW)

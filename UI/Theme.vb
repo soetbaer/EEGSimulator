@@ -65,6 +65,7 @@ Namespace UI
         Public ReadOnly FontBase As New Font("Segoe UI", 10.0F)
         Public ReadOnly FontBold As New Font("Segoe UI Semibold", 10.0F)
         Public ReadOnly FontSmall As New Font("Segoe UI", 8.75F)
+        Public ReadOnly FontTiny As New Font("Segoe UI", 7.5F)
         Public ReadOnly FontSmallBold As New Font("Segoe UI Semibold", 8.75F)
         Public ReadOnly FontSection As New Font("Segoe UI Semibold", 9.0F)
         Public ReadOnly FontHeading As New Font("Segoe UI Semibold", 12.0F)

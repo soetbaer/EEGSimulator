@@ -96,42 +96,158 @@ Public Class NeuroSimTests
         Return m
     End Function
 
+    Private Shared Function MaxAbs(a As Double()) As Double
+        Dim m = 0.0
+        For i = CInt(5 * Fs) To a.Length - 1
+            m = Math.Max(m, Math.Abs(a(i)))
+        Next
+        Return m
+    End Function
+
+    Private Shared Function Channel(montageId As String, label As String, parts As SignalPart(), Optional z As Double() = Nothing,
+                                    Optional saltBridge As Boolean = False) As Double()
+        Dim m = Montages.Get(montageId)
+        Dim index = m.IndexOf(label)
+        Assert.True(index >= 0, $"Kanal {label} fehlt in {montageId}")
+        Return Sim.Mix(m, parts, z, saltBridge)(index)
+    End Function
+
+    Private Shared ReadOnly NothingOn As SignalPart() = Array.Empty(Of SignalPart)()
+
     <Fact>
     Public Sub Netzbrumm_haengt_vom_Impedanz_Unterschied_ab()
         Dim humOnly = New SignalPart() {SignalPart.Hum}
-        Dim nothingOn = Array.Empty(Of SignalPart)()
-        Const F3C3 As Integer = 1
 
         ' gleiche Impedanzen: kein Brumm im Kanal
-        Dim equal = Enumerable.Repeat(5.0, EegSimulator.ElectrodeNames.Length).ToArray()
-        Assert.True(MaxAbsDifference(Sim.Mix(humOnly, equal)(F3C3), Sim.Mix(nothingOn, equal)(F3C3)) < 0.000001)
+        Dim equal = Enumerable.Repeat(5.0, Head.Count).ToArray()
+        Assert.True(MaxAbsDifference(Channel(Montages.Excerpt, "F3-C3", humOnly, equal), Channel(Montages.Excerpt, "F3-C3", NothingOn, equal)) < 0.000001)
 
         ' C3 schlecht: Brumm in F3-C3
         Dim unequal = CType(equal.Clone(), Double())
-        unequal(Array.IndexOf(EegSimulator.ElectrodeNames, "C3")) = 25
-        Assert.True(MaxAbsDifference(Sim.Mix(humOnly, unequal)(F3C3), Sim.Mix(nothingOn, unequal)(F3C3)) > 20)
+        unequal(Head.Index("C3")) = 25
+        Assert.True(MaxAbsDifference(Channel(Montages.Excerpt, "F3-C3", humOnly, unequal), Channel(Montages.Excerpt, "F3-C3", NothingOn, unequal)) > 20)
     End Sub
 
     <Fact>
     Public Sub EKG_Filter_findet_die_Herzschlaege()
-        Dim raw = Sim.Mix(New SignalPart() {SignalPart.Ecg})
-        Dim peaks = EcgArtifactRemover.DetectRPeaks(raw(EegSimulator.EcgChannel), Fs)
+        Dim m = Montages.Get(Montages.Excerpt)
+        Dim raw = Sim.Mix(m, New SignalPart() {SignalPart.Ecg})
+        Dim peaks = EcgArtifactRemover.DetectRPeaks(raw(m.EcgChannel), Fs)
         Assert.InRange(peaks.Count, Sim.TrueBeats.Count - 2, Sim.TrueBeats.Count)
+    End Sub
+
+    ' ---------- Verschaltungen ----------
+
+    <Fact>
+    Public Sub Verschaltungen_haben_mindestens_18_Kanaele_und_das_EKG_zuletzt()
+        For Each id In {Montages.Longitudinal, Montages.Transverse, Montages.Ear, Montages.Vertex, Montages.Average, Montages.Source}
+            Dim m = Montages.Get(id)
+            Assert.True(m.Channels.Count - 1 >= 18, id)
+            Assert.Equal(m.Channels.Count - 1, m.EcgChannel)
+        Next
+    End Sub
+
+    <Fact>
+    Public Sub Laengsreihe_folgt_der_DGKN_Empfehlung()
+        Dim labels = Montages.Get(Montages.Longitudinal).Channels.Select(Function(c) c.Label).ToArray()
+        Assert.Equal({"Fp2-F8", "F8-T4", "T4-T6", "T6-O2", "Fp1-F7", "F7-T3", "T3-T5", "T5-O1",
+                      "Fp2-F4", "F4-C4", "C4-P4", "P4-O2", "Fp1-F3", "F3-C3", "C3-P3", "P3-O1", "Fz-Cz", "Cz-Pz", "EKG"}, labels)
+    End Sub
+
+    <Fact>
+    Public Sub Jeder_EEG_Kanal_ist_eine_Differenz()
+        ' Die Gewichte jedes EEG-Kanals ergeben zusammen null: Was an allen Elektroden gleich ist, fällt heraus.
+        For Each m In Montages.All
+            For Each c In m.Channels
+                If c.Kind = ChannelKind.Eeg Then Assert.True(Math.Abs(c.Weights.Sum()) < 0.000000001, $"{m.Id} {c.Label}")
+            Next
+        Next
+    End Sub
+
+    <Fact>
+    Public Sub Bipolare_Reihe_zeigt_Phasenumkehr_bei_C3()
+        Dim spikes = New SignalPart() {SignalPart.Spikes}
+        Dim first = Array.IndexOf(Sim.PartSignal(SignalPart.Spikes), Sim.PartSignal(SignalPart.Spikes).Max())
+        ' oberflächennegativer Herd unter C3: F3-C3 positiv (Ausschlag nach unten), C3-P3 negativ (nach oben)
+        Assert.True(Channel(Montages.Longitudinal, "F3-C3", spikes)(first) > 80)
+        Assert.True(Channel(Montages.Longitudinal, "C3-P3", spikes)(first) < -80)
+        Assert.True(Channel(Montages.Transverse, "Cz-C3", spikes)(first) > 80)
+        Assert.True(Channel(Montages.Transverse, "C3-T3", spikes)(first) < -80)
+    End Sub
+
+    <Fact>
+    Public Sub Referenzableitung_zeigt_den_Herd_am_groessten_in_C3()
+        Dim spikes = New SignalPart() {SignalPart.Spikes}
+        Dim c3 = MaxAbs(Channel(Montages.Ear, "C3-A1", spikes))
+        For Each other In {"F3-A1", "P3-A1", "T3-A1", "C4-A2"}
+            Assert.True(c3 > 2 * MaxAbs(Channel(Montages.Ear, other, spikes)), other)
+        Next
+    End Sub
+
+    <Fact>
+    Public Sub Vertexreferenz_traegt_den_Herd_in_alle_Kanaele()
+        ' Cz liegt im Feld des Herdes: rechts erscheint ein Ausschlag in Gegenrichtung, in der Ohrreferenz nicht
+        Dim spikes = New SignalPart() {SignalPart.Spikes}
+        Dim first = Array.IndexOf(Sim.PartSignal(SignalPart.Spikes), Sim.PartSignal(SignalPart.Spikes).Max())
+        Assert.True(Channel(Montages.Vertex, "T4-Cz", spikes)(first) > 25)
+        Assert.True(Math.Abs(Channel(Montages.Ear, "T4-A2", spikes)(first)) < 15)
+    End Sub
+
+    <Fact>
+    Public Sub Quellenableitung_verkleinert_ausgebreitetes_Alpha()
+        Dim alpha = New SignalPart() {SignalPart.Alpha}
+        Dim ear = MaxAbs(Channel(Montages.Ear, "P3-A1", alpha)) + MaxAbs(Channel(Montages.Average, "O1-AV", alpha))
+        Dim source = MaxAbs(Channel(Montages.Source, "P3-Q", alpha)) + MaxAbs(Channel(Montages.Source, "O1-Q", alpha))
+        Assert.True(MaxAbs(Channel(Montages.Source, "O1-Q", alpha)) < 0.6 * MaxAbs(Channel(Montages.Average, "O1-AV", alpha)))
+        Assert.True(source < ear)
+    End Sub
+
+    <Fact>
+    Public Sub Ohrreferenz_holt_Alpha_in_die_Stirnkanaele()
+        Dim alpha = New SignalPart() {SignalPart.Alpha}
+        Assert.True(MaxAbs(Channel(Montages.Ear, "Fp1-A1", alpha)) > 3 * MaxAbs(Channel(Montages.Longitudinal, "Fp1-F3", alpha)))
+    End Sub
+
+    <Fact>
+    Public Sub EKG_Artefakt_ist_in_der_Ohrreferenz_groesser_als_in_der_Laengsreihe()
+        Dim maxGain = Function(id As String) Montages.Get(id).Channels.Max(Function(c) Math.Abs(EegSimulator.EcgArtifactGain(c)))
+        Assert.True(maxGain(Montages.Ear) > 2 * maxGain(Montages.Longitudinal))
+    End Sub
+
+    <Fact>
+    Public Sub Gleichtakt_erscheint_nur_an_den_einzelnen_Eingaengen()
+        Dim hum = New SignalPart() {SignalPart.Hum}
+        Dim equal = Enumerable.Repeat(3.0, Head.Count).ToArray()
+        ' am einzelnen Eingang rund 1000 µV Netzstörung, im Ausgang (Differenz) praktisch nichts
+        Assert.True(MaxAbs(Channel(Montages.Amplifier, "P3 (1:20)", hum, equal)) > 800)
+        Assert.True(MaxAbsDifference(Channel(Montages.Amplifier, "P3-O1", hum, equal), Channel(Montages.Amplifier, "P3-O1", NothingOn, equal)) < 0.000001)
+    End Sub
+
+    <Fact>
+    Public Sub Gelbruecke_macht_den_Kanal_zwischen_den_Elektroden_flach()
+        Dim parts = New SignalPart() {SignalPart.Alpha, SignalPart.Beta, SignalPart.Delta}
+        Dim normal = MaxAbs(Channel(Montages.Longitudinal, "F3-C3", parts))
+        Dim bridged = MaxAbs(Channel(Montages.Longitudinal, "F3-C3", parts, Nothing, True))
+        Assert.True(bridged < 0.15 * normal)
     End Sub
 
     ' ---------- Lektionen ----------
 
     <Fact>
-    Public Sub Zwoelf_Lektionen_mit_gueltigen_Voreinstellungen()
+    Public Sub Lektionen_haben_gueltige_Voreinstellungen()
         Dim lessons = LessonCatalog.Create()
-        Assert.Equal(12, lessons.Count)
+        Assert.Equal(23, lessons.Count)
         For Each les In lessons
+            Assert.NotEqual("", les.Chapter)
             Assert.Contains(les.Preset.LowCutTc, LowCutOptions)
             Assert.Contains(les.Preset.HighCutHz, HighCutOptions)
             Assert.Contains(les.Preset.Sensitivity, SensitivityOptions)
+            Assert.Equal(Head.Count, les.Preset.Impedances.Length)
             For Each z In les.Preset.Impedances
                 Assert.Contains(z, ImpedanceOptions)
             Next
+            Assert.Contains(les.Preset.MontageId, Montages.All.Select(Function(m) m.Id))
+            Assert.InRange(les.Preset.SelectedChannel, 0, les.Preset.Montage.Channels.Count - 1)
             ' Alpha (Augen zu) und Augenblinzeln (Augen auf) nicht gemeinsam voreinstellen
             Assert.False(les.Preset.Parts.Contains(SignalPart.Alpha) AndAlso les.Preset.Parts.Contains(SignalPart.Blinks))
         Next

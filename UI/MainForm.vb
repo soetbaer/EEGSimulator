@@ -51,6 +51,9 @@ Namespace UI
         Private _btnSensPlus As Button
         Private ReadOnly _partToggles As New Dictionary(Of SignalPart, ToggleSwitch)
         Private ReadOnly _imp As New ImpedanceView()
+        Private ReadOnly _cmbMontage As New ComboBox()
+        Private ReadOnly _lblMontage As New Label()
+        Private ReadOnly _montageView As New MontageView()
         Private ReadOnly _tglBridge As New ToggleSwitch()
         Private ReadOnly _rightPages As New List(Of FlowLayoutPanel)
         Private ReadOnly _rightTabs As New List(Of Button)
@@ -66,6 +69,7 @@ Namespace UI
         Private _viewStart As Double
 
         Private Const WindowSec As Double = 10
+        Private Shared ReadOnly RightTabNames As String() = {"Filter", "Verschaltung", "Impedanzen", "Signal"}
         Private Const ControlWidth As Integer = 272
 
         Public Sub New()
@@ -98,9 +102,11 @@ Namespace UI
 
             ' Namen für Bildschirmleser
             _eeg.AccessibleName = "EEG-Kurven"
-            _eeg.AccessibleDescription = "Simulierte EEG-Kurven, rechts über links, unten EKG. Klick auf einen Kanal wählt ihn für die Frequenz-Ansicht."
+            _eeg.AccessibleDescription = "Simulierte EEG-Kurven in der gewählten Verschaltung, rechts über links, unten EKG. Klick auf einen Kanal wählt ihn für die Frequenz-Ansicht."
             _spectrum.AccessibleName = "Frequenz-Ansicht"
             _imp.AccessibleName = "Impedanzen der Elektroden"
+            _montageView.AccessibleName = "Kopfschema der Verschaltung"
+            _cmbMontage.AccessibleName = "Verschaltung"
             _info.AccessibleName = "Erklärung"
             AddHandler _timer.Tick, AddressOf OnTick
             AddHandler _eeg.ChannelClicked, AddressOf OnChannelClicked
@@ -221,18 +227,17 @@ Namespace UI
             Dim right As New Panel With {.Dock = DockStyle.Right, .Width = 316, .BackColor = Theme.Card}
             Dim border As New Panel With {.Dock = DockStyle.Left, .Width = 1, .BackColor = Theme.Border}
 
-            ' Drei Reiter statt einer langen Liste: so passt jeder Bereich ohne Scrollen auf den Bildschirm
-            For i = 0 To 2
+            ' Reiter statt einer langen Liste: so passt jeder Bereich ohne Scrollen auf den Bildschirm
+            For i = 0 To RightTabNames.Length - 1
                 _rightPages.Add(New FlowLayoutPanel With {.Dock = DockStyle.Fill, .FlowDirection = FlowDirection.TopDown, .WrapContents = False,
                                                          .AutoScroll = True, .Padding = New Padding(18, 0, 8, 16), .BackColor = Theme.Card, .Visible = (i = 0)})
             Next
             Dim tabBar As New FlowLayoutPanel With {.Dock = DockStyle.Top, .Height = 52, .FlowDirection = FlowDirection.LeftToRight, .WrapContents = False,
                                                     .Padding = New Padding(18, 12, 0, 0), .BackColor = Theme.Card}
-            Dim tabNames = {"Einstellungen", "Impedanzen", "Signal"}
-            Dim tabWidths = {104, 92, 76}
-            For i = 0 To 2
+            Dim tabWidths = {50, 94, 88, 56}
+            For i = 0 To RightTabNames.Length - 1
                 Dim idx = i
-                Dim tb = MakeButton(tabNames(i), Theme.AccentLight, Theme.AccentDark)
+                Dim tb = MakeButton(RightTabNames(i), Theme.AccentLight, Theme.AccentDark)
                 tb.Size = New Size(tabWidths(i), 32)
                 tb.Font = Theme.FontSmallBold
                 tb.Margin = New Padding(0)
@@ -240,7 +245,7 @@ Namespace UI
                 _rightTabs.Add(tb)
                 tabBar.Controls.Add(tb)
             Next
-            Dim flow = _rightPages(0)
+            Dim flow = _rightPages(Lesson.TabFilter)
 
             ' ---- Filter ----
             AddSection(flow, "Filter")
@@ -294,13 +299,31 @@ Namespace UI
             SetupToggle(flow, _tglRaw, "Rohsignal grau unterlegen", Theme.TraceRaw)
             SetupToggle(flow, _tglRemoved, "Entfernten Anteil rot zeigen", Theme.Removed)
 
+            ' ---- Verschaltung ----
+            flow = _rightPages(Lesson.TabMontage)
+            AddSection(flow, "Verschaltung (Montage)")
+            AddHint(flow, "Welche Elektroden werden in jedem Kanal miteinander verglichen?")
+            SetupCombo(_cmbMontage, Montages.All.Select(Function(m) m.Name))
+            flow.Controls.Add(_cmbMontage)
+            _tips.SetToolTip(_cmbMontage, "Das EEG bleibt dasselbe – die Verschaltung ändert nur, welche Elektroden verglichen werden.")
+            _lblMontage.Font = Theme.FontSmall
+            _lblMontage.ForeColor = Theme.TextMuted
+            _lblMontage.AutoSize = False
+            _lblMontage.Size = New Size(ControlWidth, 50)
+            _lblMontage.Margin = New Padding(0, 0, 0, 2)
+            flow.Controls.Add(_lblMontage)
+            _montageView.Size = New Size(ControlWidth, 270)
+            _montageView.Margin = New Padding(0, 0, 0, 4)
+            flow.Controls.Add(_montageView)
+            AddHandler _cmbMontage.SelectedIndexChanged, AddressOf OnControlChanged
+
             ' ---- Impedanzen ----
-            flow = _rightPages(1)
+            flow = _rightPages(Lesson.TabImpedance)
             AddSection(flow, "Impedanzen der Elektroden")
             flow.Controls.Add(New Label With {.Text = "Werte in kΩ. Klick: erhöhen, Rechtsklick: verringern. Tastatur: Pfeiltasten wählen die Elektrode, + und − ändern den Wert.",
                                               .Font = Theme.FontSmall, .ForeColor = Theme.TextMuted, .AutoSize = False,
                                               .Size = New Size(ControlWidth, 52), .Margin = New Padding(0, 0, 0, 2)})
-            _imp.Size = New Size(ControlWidth, 300)
+            _imp.Size = New Size(ControlWidth, 290)
             _imp.Margin = New Padding(0, 0, 0, 4)
             flow.Controls.Add(_imp)
             SetupToggle(flow, _tglBridge, "Gelbrücke F3–C3 (zu niedrig)", ImpedanceView.ColTooLow)
@@ -320,7 +343,7 @@ Namespace UI
             AddHandler _tglBridge.CheckedChanged, AddressOf OnControlChanged
 
             ' ---- Bausteine ----
-            flow = _rightPages(2)
+            flow = _rightPages(Lesson.TabSignal)
             AddSection(flow, "Signal-Bausteine")
             AddHint(flow, "Was steckt im simulierten EEG? Einzeln ein- und ausschalten.")
             AddSubLabel(flow, "Hirnaktivität")
@@ -528,6 +551,7 @@ Namespace UI
                 _tglRaw.Checked = _settings.ShowRaw
                 _tglRemoved.Checked = _settings.ShowRemoved
                 _tglBridge.Checked = _settings.SaltBridge
+                _cmbMontage.SelectedIndex = Math.Max(0, Array.FindIndex(Montages.All, Function(m) m.Id = _settings.MontageId))
                 _imp.Values = _settings.Impedances
                 _imp.SaltBridge = _settings.SaltBridge
                 For Each kv In _partToggles
@@ -547,6 +571,13 @@ Namespace UI
             _settings.ShowRaw = _tglRaw.Checked
             _settings.ShowRemoved = _tglRemoved.Checked
             _settings.Impedances = _imp.Values
+            Dim newMontage = Montages.All(Math.Max(0, _cmbMontage.SelectedIndex))
+            If newMontage.Id <> _settings.MontageId Then
+                ' denselben Kanal behalten, wenn es ihn in der neuen Verschaltung gibt; sonst den ersten
+                Dim oldLabel = _settings.Montage.Channels(Math.Min(_settings.SelectedChannel, _settings.Montage.Channels.Count - 1)).Label
+                _settings.MontageId = newMontage.Id
+                _settings.SelectedChannel = Math.Max(0, newMontage.IndexOf(oldLabel))
+            End If
             _settings.SaltBridge = _tglBridge.Checked
             _imp.SaltBridge = _settings.SaltBridge
             _settings.Parts.Clear()
@@ -572,6 +603,7 @@ Namespace UI
         Private Sub OnChannelClicked(sender As Object, ch As Integer)
             _settings.SelectedChannel = ch
             _eeg.SelectedChannel = ch
+            _montageView.SelectedChannel = ch
             _eeg.Invalidate()
             UpdateSpectrum()
         End Sub
@@ -582,26 +614,35 @@ Namespace UI
 
         Private Sub Recompute()
             Dim fs = EegSimulator.SampleRate
-            _raw = _sim.Mix(_settings.Parts, _settings.Impedances, _settings.SaltBridge)
+            Dim montage = _settings.Montage
+            _settings.SelectedChannel = Math.Max(0, Math.Min(montage.Channels.Count - 1, _settings.SelectedChannel))
+            _raw = _sim.Mix(montage, _settings.Parts, _settings.Impedances, _settings.SaltBridge)
             _chain = FilterChain.Create(_settings.LowCutHz, _settings.HighCutHz, _settings.Notch, fs)
 
+            ' Die einzeln gezeigten Verstärkereingänge liegen VOR dem Verstärker und bleiben ungefiltert
             _filtered = New Double(_raw.Length - 1)() {}
             For c = 0 To _raw.Length - 1
                 _filtered(c) = CType(_raw(c).Clone(), Double())
-                _chain.ProcessInPlace(_filtered(c))
+                If montage.Channels(c).Kind <> ChannelKind.SingleInput Then _chain.ProcessInPlace(_filtered(c))
             Next
 
             _peaks = Nothing
             _ecgRemaining = Nothing
-            If _settings.EcgFilter Then
-                _peaks = EcgArtifactRemover.DetectRPeaks(_raw(EegSimulator.EcgChannel), fs)
-                Const MeasureChannel As Integer = 3     ' P3-O1: dort ist das EKG-Artefakt am stärksten
-                Dim beforeRemoval = CType(_filtered(MeasureChannel).Clone(), Double())
-                For c = 0 To _raw.Length - 1
-                    If c <> EegSimulator.EcgChannel Then EcgArtifactRemover.Remove(_filtered(c), _peaks, fs)
+            Dim ecgChannel = montage.EcgChannel
+            If _settings.EcgFilter AndAlso ecgChannel >= 0 Then
+                _peaks = EcgArtifactRemover.DetectRPeaks(_raw(ecgChannel), fs)
+                ' gemessen wird in dem Kanal, in dem das EKG-Artefakt am stärksten ist
+                Dim measure = -1, bestGain = 0.0
+                For c = 0 To montage.Channels.Count - 1
+                    Dim gain = Math.Abs(EegSimulator.EcgArtifactGain(montage.Channels(c)))
+                    If gain > bestGain Then bestGain = gain : measure = c
                 Next
-                If _settings.Parts.Contains(SignalPart.Ecg) AndAlso _peaks.Count >= 3 Then
-                    _ecgRemaining = MeasureEcgRemaining(beforeRemoval, _filtered(MeasureChannel), MeasureChannel)
+                Dim beforeRemoval = If(measure >= 0, CType(_filtered(measure).Clone(), Double()), Nothing)
+                For c = 0 To _raw.Length - 1
+                    If montage.Channels(c).Kind = ChannelKind.Eeg Then EcgArtifactRemover.Remove(_filtered(c), _peaks, fs)
+                Next
+                If measure >= 0 AndAlso _settings.Parts.Contains(SignalPart.Ecg) AndAlso _peaks.Count >= 3 Then
+                    _ecgRemaining = MeasureEcgRemaining(beforeRemoval, _filtered(measure), montage.Channels(measure))
                 End If
             End If
 
@@ -609,7 +650,11 @@ Namespace UI
             _btnSensPlus.Enabled = _settings.Sensitivity > SensitivityOptions.First()
             _btnSensMinus.Enabled = _settings.Sensitivity < SensitivityOptions.Last()
 
-            _eeg.EcgChannel = EegSimulator.EcgChannel
+            _lblMontage.Text = montage.Summary
+            _montageView.Montage = montage
+            _montageView.SelectedChannel = _settings.SelectedChannel
+            _imp.Montage = montage
+
             _eeg.Sensitivity = _settings.Sensitivity
             _eeg.WindowSeconds = WindowSec
             _eeg.StartSeconds = _viewStart
@@ -620,7 +665,7 @@ Namespace UI
             _eeg.ShowRaw = _settings.ShowRaw
             _eeg.ShowRemoved = _settings.ShowRemoved
             _eeg.SelectedChannel = _settings.SelectedChannel
-            _eeg.SetData(EegSimulator.ChannelNames, _raw, _filtered, fs, _peaks)
+            _eeg.SetData(montage.Channels, _raw, _filtered, fs, _peaks)
             UpdateTimeLabel()
 
             UpdateSpectrum()
@@ -631,9 +676,9 @@ Namespace UI
         ''' Misst, wie viel vom EKG-Artefakt nach Filterkette + EKG-Filter übrig ist (0 … 1),
         ''' jeweils im Bereich ±30 ms um die tatsächlichen Herzschläge.
         ''' </summary>
-        Private Function MeasureEcgRemaining(beforeRemoval As Double(), afterRemoval As Double(), channel As Integer) As Double
+        Private Function MeasureEcgRemaining(beforeRemoval As Double(), afterRemoval As Double(), channel As Derivation) As Double
             Dim fs = EegSimulator.SampleRate
-            Dim rawArt = _sim.PartSignal(SignalPart.Ecg, channel)
+            Dim rawArt = _sim.EcgArtifact(channel)
             Dim filtArt = CType(rawArt.Clone(), Double())
             _chain.ProcessInPlace(filtArt)
             Dim half = CInt(0.03 * fs)
@@ -657,7 +702,7 @@ Namespace UI
             Dim rawBars = SpectrumAnalysis.Bars(_raw(ch), fs, _edges)
             Dim filtBars = SpectrumAnalysis.Bars(_filtered(ch), fs, _edges)
             Dim chain = _chain
-            _spectrum.ChannelName = EegSimulator.ChannelNames(ch)
+            _spectrum.ChannelName = _settings.Montage.Channels(ch).Label
             _spectrum.LowCutHz = _settings.LowCutHz
             _spectrum.HighCutHz = _settings.HighCutHz
             _spectrum.Notch = _settings.Notch
@@ -669,7 +714,7 @@ Namespace UI
             Dim blocks As New List(Of InfoBlock)
             If _lessonMode Then
                 Dim les = _lessons(_lessonIndex)
-                blocks.Add(InfoBlock.Subtitle($"Lektion {_lessonIndex + 1} von {_lessons.Count}"))
+                blocks.Add(InfoBlock.Subtitle($"{les.Chapter}  ·  Lektion {_lessonIndex + 1} von {_lessons.Count}"))
                 blocks.Add(InfoBlock.Title(les.Title))
                 blocks.AddRange(les.Blocks)
                 blocks.Add(InfoBlock.Divider())

@@ -13,7 +13,7 @@ Namespace Services
         Public ReadOnly Property About As String
             Get
                 Return String.Join(NL, {
-                    $"{AppInfo.Name} ist eine interaktive Schulungsanwendung für Medizinische Technologinnen und Technologen für Funktionsdiagnostik (MTF) und weiteres Fachpersonal in der Neurophysiologie. Sie zeigt an simulierten EEG-Kurven, wie sich LowCut, HiCut, Amplitude, 50-Hz-Filter, EKG-Filter und Elektrodenimpedanzen auswirken.",
+                    $"{AppInfo.Name} ist eine interaktive Schulungsanwendung für Medizinische Technologinnen und Technologen für Funktionsdiagnostik (MTF) und weiteres Fachpersonal in der Neurophysiologie. Sie zeigt an simulierten EEG-Kurven, wie der Verstärker arbeitet und wie sich Verschaltungen, LowCut, HiCut, Amplitude, 50-Hz-Filter, EKG-Filter und Elektrodenimpedanzen auswirken.",
                     "",
                     $"Entwickler: {AppInfo.Developer}",
                     $"Copyright © {AppInfo.CopyrightYear} {AppInfo.Developer}",
@@ -64,16 +64,20 @@ Namespace Services
                     "• DGKN: Empfehlung zu EEG-Ableiteprogrammen. Überarbeitete Fassung, Oktober 2024.",
                     "• American Clinical Neurophysiology Society (ACNS): Guideline 1 – Minimum Technical Requirements for Performing Clinical Electroencephalography. J Clin Neurophysiol 2016; 33: 303–307.",
                     "• Nuwer MR et al.: IFCN standards for digital recording of clinical EEG. Electroencephalogr Clin Neurophysiol 1998; 106: 259–261.",
+                    "• ACNS: Guideline 3 – A Proposal for Standard Montages to Be Used in Clinical EEG. J Clin Neurophysiol 2016; 33: 312–316.",
                     "• Kane N et al.: A revised glossary of terms most commonly used by clinical electroencephalographers and updated proposal for the report format of the EEG findings. Clin Neurophysiol Pract 2017; 2: 170–185.",
                     "",
                     "Lehrbücher und Übersichten",
                     "• Bischoff C, Straube A (Hrsg.): Leitlinien Klinische Neurophysiologie. Kohlhammer, Stuttgart 2014 – insbesondere Baier H: Ableitung und technische Grundlagen; Rosenow F: Das normale EEG und seine Grundrhythmusvarianten bei Erwachsenen.",
+                    "• Kutluay E, Kalamangalam GP: Montages for noninvasive EEG recording. J Clin Neurophysiol 2019; 36: 330–336.",
                     "• Beniczky S, Schomer DL: Electroencephalography: basic biophysical and technological aspects important for clinical applications. Epileptic Disord 2020; 22.",
                     "",
                     "Einzelarbeiten",
                     "• Kappenman ES, Luck SJ: The effects of electrode impedance on data quality and statistical significance in ERP recordings. Psychophysiology 2010; 47: 888–904.",
                     "• Ferree TC, Luu P, Russell GS, Tucker DM: Scalp electrode impedance, infection risk, and EEG data quality. Clin Neurophysiol 2001; 112: 536–544.",
                     "• Nakamura M, Shibasaki H: Elimination of EKG artifacts from EEG records: a new method of non-cephalic referential EEG recording. Electroencephalogr Clin Neurophysiol 1987; 66: 88–92.",
+                    "• Hjorth B: An on-line transformation of EEG scalp potentials into orthogonal source derivations. Electroencephalogr Clin Neurophysiol 1975; 39: 526–530.",
+                    "• Metting van Rijn AC, Peper A, Grimbergen CA: High-quality recording of bioelectric events. Part 1: Interference reduction, theory and practice. Med Biol Eng Comput 1990; 28: 389–397.",
                     "• Huhta JC, Webster JG: 60-Hz interference in electrocardiography. IEEE Trans Biomed Eng 1973; 20: 91–101.",
                     "• Muthukumaraswamy SD: High-frequency brain activity and muscle artifacts in MEG/EEG: a review and recommendations. Front Hum Neurosci 2013; 7: 138.",
                     "• Goncharova II et al.: EMG contamination of EEG: spectral and topographical characteristics. Clin Neurophysiol 2003; 114: 1580–1593.",
@@ -83,6 +87,8 @@ Namespace Services
                     "",
                     "Hinweise",
                     "• Die Stärke der Netzeinstreuung je Kiloohm, die Schwellen für Kontakt-Unruhe und Elektroden-Pops sowie die Wirkung der Gelbrücke sind Modellannahmen der Simulation und keine Messwerte.",
+                    "• Die Verschaltungen folgen den Tabellen der DGKN-Empfehlung zu EEG-Ableiteprogrammen (jeweils die typische Variante). Die Quellenableitung ist dort nicht aufgeführt; die verwendeten Nachbarelektroden und gleichen Gewichte sind eine Annahme, Geräte rechnen unterschiedlich.",
+                    "• Wie sich Hirnaktivität und Artefakte über die Elektroden verteilen (z. B. das Feld des Herdes unter C3, Alpha an den Ohren, das EKG-Artefakt) sowie die Größe der Gleichtaktstörung an den Verstärkereingängen sind Modellannahmen und keine Messwerte.",
                     "• Die Flankensteilheit der Filter ist geräteabhängig. Simuliert werden ein Hochpass 1. Ordnung (LowCut), ein Tiefpass 2. Ordnung (HiCut) und ein Kerbfilter bei 50 Hz.",
                     "• Einzelheiten zum didaktischen Konzept und zum Simulationsmodell stehen in der Datei KONZEPT.md im Quellcode-Repository."})
             End Get
