@@ -92,8 +92,9 @@ Bei jedem Push baut GitHub Actions (`.github/workflows/ci.yml`) die Anwendung un
 ## Ein Release veröffentlichen
 
 1. In `NeuroSim.vbproj` die `<Version>` erhöhen.
-2. Das Artefakt `NeuroSim-exe` aus dem CI-Lauf des Commits herunterladen und entpacken. Es enthält `NeuroSim.exe` und `NeuroSim.exe.sha256`. (Alternativ die EXE mit dem Befehl oben selbst erzeugen.)
-3. Auf GitHub ein Release mit dem Tag `X.Y.Z` oder `vX.Y.Z` anlegen und beide Dateien anhängen. Die EXE muss genau `NeuroSim.exe` heißen.
+2. In `RELEASE_NOTES.md` beschreiben, was sich geändert hat. Die Datei wird zum Text des Releases.
+3. Beides auf `main` bringen.
+4. Auf GitHub unter **Actions → Release veröffentlichen → Run workflow** (Branch `main`) starten. Der Lauf baut und testet die Anwendung und legt das Release mit dem Tag `X.Y.Z` sowie `NeuroSim.exe` und `NeuroSim.exe.sha256` an. Gibt es die Version schon, bricht er ab, außer `replace` ist angehakt.
 
 Die Update-Funktion liest die Tag-Nummer des neuesten Releases, vergleicht sie mit der Programmversion und lädt `NeuroSim.exe` aus diesem Release. Die Datei `NeuroSim.exe.sha256` ist freiwillig; liegt sie bei, wird die Prüfsumme der heruntergeladenen EXE damit verglichen.
 
