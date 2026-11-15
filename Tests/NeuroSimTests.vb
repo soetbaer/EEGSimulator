@@ -193,19 +193,39 @@ Public Class NeuroSimTests
         Assert.True(Math.Abs(Channel(Montages.Ear, "T4-A2", spikes)(first)) < 15)
     End Sub
 
+    ''' <summary>Größter Ausschlag, den die Bausteine allein in einem Kanal erzeugen (ohne Grundrauschen).</summary>
+    Private Shared Function Amplitude(montageId As String, label As String, parts As SignalPart()) As Double
+        Return MaxAbsDifference(Channel(montageId, label, parts), Channel(montageId, label, NothingOn))
+    End Function
+
     <Fact>
     Public Sub Quellenableitung_verkleinert_ausgebreitetes_Alpha()
         Dim alpha = New SignalPart() {SignalPart.Alpha}
-        Dim ear = MaxAbs(Channel(Montages.Ear, "P3-A1", alpha)) + MaxAbs(Channel(Montages.Average, "O1-AV", alpha))
-        Dim source = MaxAbs(Channel(Montages.Source, "P3-Q", alpha)) + MaxAbs(Channel(Montages.Source, "O1-Q", alpha))
-        Assert.True(MaxAbs(Channel(Montages.Source, "O1-Q", alpha)) < 0.6 * MaxAbs(Channel(Montages.Average, "O1-AV", alpha)))
-        Assert.True(source < ear)
+        Assert.True(Amplitude(Montages.Source, "O1-Q", alpha) < 0.6 * Amplitude(Montages.Ear, "O1-A1", alpha))
+        Assert.True(Amplitude(Montages.Source, "O1-Q", alpha) < 0.75 * Amplitude(Montages.Average, "O1-AV", alpha))
+    End Sub
+
+    <Fact>
+    Public Sub Quellenableitung_zeigt_den_Herd_fast_nur_in_C3()
+        Dim spikes = New SignalPart() {SignalPart.Spikes}
+        Dim c3 = Amplitude(Montages.Source, "C3-Q", spikes)
+        For Each other In {"F3-Q", "P3-Q", "T3-Q", "Cz-Q", "C4-Q"}
+            Assert.True(Amplitude(Montages.Source, other, spikes) < 0.2 * c3, other)
+        Next
     End Sub
 
     <Fact>
     Public Sub Ohrreferenz_holt_Alpha_in_die_Stirnkanaele()
         Dim alpha = New SignalPart() {SignalPart.Alpha}
-        Assert.True(MaxAbs(Channel(Montages.Ear, "Fp1-A1", alpha)) > 3 * MaxAbs(Channel(Montages.Longitudinal, "Fp1-F3", alpha)))
+        Assert.True(Amplitude(Montages.Ear, "Fp1-A1", alpha) > 3 * Amplitude(Montages.Longitudinal, "Fp1-F3", alpha))
+    End Sub
+
+    <Fact>
+    Public Sub Durchschnittsreferenz_traegt_Blinzeln_in_alle_Kanaele()
+        Dim blinks = New SignalPart() {SignalPart.Blinks}
+        ' okzipital entsteht kein Blinzeln; in der Durchschnittsreferenz erscheint es dort trotzdem
+        Assert.True(Amplitude(Montages.Average, "O1-AV", blinks) > 20)
+        Assert.True(Amplitude(Montages.Ear, "O1-A1", blinks) < 20)
     End Sub
 
     <Fact>
