@@ -11,6 +11,8 @@ Zwei neue Kapitel: der Verstärker (Headbox) und die Verschaltungen.
 - Der Reiter »Einstellungen« heißt jetzt »Filter«.
 - Die Gelbrücke wirkt jetzt auf alle Kanäle, in denen F3 oder C3 vorkommen.
 - Das EKG-Artefakt hängt von der Verschaltung ab: klein in der Längsreihe, groß in der Ohrreferenz.
+- Die Amplitude wirkt nur noch auf die EEG-Kanäle. Das EKG hat eine eigene Größe: Klick auf die EKG-Kurve zeichnet sie größer, Rechtsklick kleiner.
+- Das Abspielen mit der Schreiblinie läuft flüssiger.
 
 ## Installation
 `NeuroSim.exe` herunterladen und starten. Keine Installation nötig, läuft auf Windows 10 und 11 (64 Bit). Wer eine ältere Version benutzt, kann im Info-Dialog (F1) über „Jetzt nach Updates suchen“ aktualisieren.
