@@ -38,8 +38,9 @@ Weil die EXE nicht signiert ist, zeigt Windows beim ersten Start eventuell den H
 ## Info, Lizenz und Updates
 
 - Die Schaltfläche **Info** (oder `F1`) zeigt Entwickler, Quellen, Haftungsausschluss und Lizenz.
-- **Updates:** NeuroSim fragt beim Start die neueste Versionsnummer bei GitHub ab und bietet eine neue Version zum Installieren an. Die automatische Suche lässt sich im Info-Dialog abschalten; dort gibt es auch „Jetzt nach Updates suchen“. Übertragen werden keine Nutzungsdaten; GitHub sieht technisch bedingt die IP-Adresse.
-- Beim Aktualisieren lädt NeuroSim die EXE aus dem Release, prüft sie (Größe, Dateityp, SHA-256-Prüfsumme von GitHub) und ersetzt sich selbst. Liegt die EXE in einem schreibgeschützten Ordner, verweist der Dialog auf die Release-Seite.
+- **Updates:** Beim ersten Start fragt NeuroSim einmal, ob es beim Start nach neuen Versionen suchen darf. Ohne Zustimmung wird nichts abgefragt. Mit Zustimmung fragt NeuroSim höchstens einmal am Tag die neueste Versionsnummer bei GitHub ab und bietet eine neue Version zum Installieren an. Die Auswahl lässt sich im Info-Dialog ändern; dort gibt es auch „Jetzt nach Updates suchen“. Übertragen werden keine Nutzungsdaten; GitHub sieht technisch bedingt die IP-Adresse.
+- Beim Aktualisieren lädt NeuroSim die `NeuroSim.exe` aus dem Release, prüft sie (Größe, Dateityp und, falls dem Release eine `NeuroSim.exe.sha256` beiliegt, die SHA-256-Prüfsumme) und ersetzt sich selbst. Liegt die EXE in einem schreibgeschützten Ordner, verweist der Dialog auf die Release-Seite.
+- **Für Administratoren:** Die Update-Funktion (Suche und Selbst-Update) lässt sich ganz abschalten, entweder durch eine leere Datei `NeuroSim.noupdate` im Ordner der EXE oder durch den Registry-Wert `DisableUpdate` = `1` unter `HKEY_LOCAL_MACHINE\Software\Policies\NeuroSim`. Der Info-Dialog zeigt dann „vom Administrator abgeschaltet“.
 
 ## Bauen und Starten
 
@@ -91,10 +92,10 @@ Bei jedem Push baut GitHub Actions (`.github/workflows/ci.yml`) die Anwendung un
 ## Ein Release veröffentlichen
 
 1. In `NeuroSim.vbproj` die `<Version>` erhöhen.
-2. EXE erzeugen (Befehl oben) oder das Artefakt `NeuroSim-exe` aus dem CI-Lauf des Commits herunterladen.
-3. Auf GitHub ein Release mit dem Tag `X.Y.Z` oder `vX.Y.Z` anlegen und `NeuroSim.exe` anhängen.
+2. Das Artefakt `NeuroSim-exe` aus dem CI-Lauf des Commits herunterladen und entpacken. Es enthält `NeuroSim.exe` und `NeuroSim.exe.sha256`. (Alternativ die EXE mit dem Befehl oben selbst erzeugen.)
+3. Auf GitHub ein Release mit dem Tag `X.Y.Z` oder `vX.Y.Z` anlegen und beide Dateien anhängen. Die EXE muss genau `NeuroSim.exe` heißen.
 
-Die Update-Funktion vergleicht die Tag-Nummer mit der Programmversion und lädt die angehängte `.exe`.
+Die Update-Funktion liest die Tag-Nummer des neuesten Releases, vergleicht sie mit der Programmversion und lädt `NeuroSim.exe` aus diesem Release. Die Datei `NeuroSim.exe.sha256` ist freiwillig; liegt sie bei, wird die Prüfsumme der heruntergeladenen EXE damit verglichen.
 
 ## Lizenz
 

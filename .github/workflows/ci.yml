@@ -28,10 +28,19 @@ jobs:
       - name: EXE erzeugen
         run: dotnet publish NeuroSim.vbproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none
 
+      - name: Prüfsumme erzeugen
+        shell: pwsh
+        run: |
+          $exe = "bin/Release/net8.0-windows/win-x64/publish/NeuroSim.exe"
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          Set-Content -Path "$exe.sha256" -Value "$hash  NeuroSim.exe" -Encoding ascii
+
       - name: EXE bereitstellen
         uses: actions/upload-artifact@v4
         with:
           name: NeuroSim-exe
-          path: bin/Release/net8.0-windows/win-x64/publish/NeuroSim.exe
+          path: |
+            bin/Release/net8.0-windows/win-x64/publish/NeuroSim.exe
+            bin/Release/net8.0-windows/win-x64/publish/NeuroSim.exe.sha256
           if-no-files-found: error
           retention-days: 14

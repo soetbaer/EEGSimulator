@@ -5,7 +5,6 @@ Imports System.IO
 Imports System.Net.Http
 Imports System.Reflection
 Imports System.Security.Cryptography
-Imports System.Text.Json
 
 Namespace Services
 
@@ -44,7 +43,7 @@ Namespace Services
         Public Property PageUrl As String = AppInfo.ReleasesUrl
         ''' <summary>Download-Adresse der EXE oder Nothing, wenn das Release keine EXE enthält.</summary>
         Public Property DownloadUrl As String
-        ''' <summary>SHA-256-Prüfsumme der EXE (hex), sofern GitHub sie mitliefert.</summary>
+        ''' <summary>SHA-256-Prüfsumme der EXE (hex), sofern dem Release eine .sha256-Datei beiliegt.</summary>
         Public Property Sha256 As String
         Public Property IsNewer As Boolean
 
@@ -61,9 +60,17 @@ Namespace Services
     ''' </summary>
     Public NotInheritable Class Updater
 
-        Private Const ApiUrl As String = "https://api.github.com/repos/" & AppInfo.RepoOwner & "/" & AppInfo.RepoName & "/releases/latest"
+        ' Die normale Release-Seite leitet auf das neueste Release weiter. Anders als die
+        ' Programmierschnittstelle von GitHub hat sie keine enge Abfragegrenze je IP-Adresse.
+        Private Const LatestUrl As String = AppInfo.ReleasesUrl & "/latest"
+        Private Const TagPrefix As String = AppInfo.ReleasesUrl & "/tag/"
         ' Nur Downloads aus den Releases dieses Repositorys werden akzeptiert
         Private Const DownloadPrefix As String = AppInfo.RepoUrl & "/releases/download/"
+        Private Const ExeAssetName As String = "NeuroSim.exe"
+        ''' <summary>Liegt diese Datei neben der EXE, ist die Update-Funktion abgeschaltet.</summary>
+        Public Const DisableFileName As String = "NeuroSim.noupdate"
+        ''' <summary>Registry-Schlüssel (HKEY_LOCAL_MACHINE) mit dem Wert DisableUpdate = 1.</summary>
+        Public Const PolicyKey As String = "Software\Policies\NeuroSim"
 
         Private Sub New()
         End Sub
@@ -82,59 +89,97 @@ Namespace Services
             Return New Version(v.Major, v.Minor, Math.Max(0, v.Build))
         End Function
 
-        ''' <summary>Wertet die Antwort der GitHub-Schnittstelle aus (ohne Netzwerk, daher testbar).</summary>
-        Public Shared Function ParseRelease(json As String, current As Version) As UpdateInfo
-            Using doc = JsonDocument.Parse(json)
-                Dim root = doc.RootElement
-                Dim info As New UpdateInfo()
-                Dim el As JsonElement
-                If root.TryGetProperty("tag_name", el) AndAlso el.ValueKind = JsonValueKind.String Then info.TagName = el.GetString()
-                info.Version = ParseVersion(info.TagName)
-                If info.Version Is Nothing Then Return Nothing
-                If root.TryGetProperty("body", el) AndAlso el.ValueKind = JsonValueKind.String Then info.Notes = el.GetString()
-                If root.TryGetProperty("html_url", el) AndAlso el.ValueKind = JsonValueKind.String Then
-                    Dim url = el.GetString()
-                    If url.StartsWith(AppInfo.RepoUrl & "/", StringComparison.OrdinalIgnoreCase) Then info.PageUrl = url
-                End If
-                If root.TryGetProperty("assets", el) AndAlso el.ValueKind = JsonValueKind.Array Then
-                    For Each a In el.EnumerateArray()
-                        Dim nameEl As JsonElement, urlEl As JsonElement, digEl As JsonElement
-                        If Not a.TryGetProperty("name", nameEl) OrElse Not a.TryGetProperty("browser_download_url", urlEl) Then Continue For
-                        Dim name = nameEl.GetString(), url = urlEl.GetString()
-                        If name Is Nothing OrElse url Is Nothing Then Continue For
-                        If Not name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) Then Continue For
-                        If Not url.StartsWith(DownloadPrefix, StringComparison.OrdinalIgnoreCase) Then Continue For
-                        info.DownloadUrl = url
-                        If a.TryGetProperty("digest", digEl) AndAlso digEl.ValueKind = JsonValueKind.String Then
-                            Dim d = digEl.GetString()
-                            If d.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) Then info.Sha256 = d.Substring(7).Trim().ToLowerInvariant()
-                        End If
-                        Exit For
-                    Next
-                End If
-                Dim cur = New Version(current.Major, current.Minor, Math.Max(0, current.Build))
-                info.IsNewer = info.Version > cur
-                Return info
-            End Using
+        ''' <summary>
+        ''' Wertet die Weiterleitung von ".../releases/latest" aus (ohne Netzwerk, daher testbar).
+        ''' Gibt Nothing zurück, wenn die Adresse nicht auf ein Release dieses Repositorys zeigt.
+        ''' </summary>
+        Public Shared Function ParseLatestLocation(location As String, current As Version) As UpdateInfo
+            If String.IsNullOrWhiteSpace(location) Then Return Nothing
+            If Not location.StartsWith(TagPrefix, StringComparison.OrdinalIgnoreCase) Then Return Nothing
+            Dim tag = Uri.UnescapeDataString(location.Substring(TagPrefix.Length)).Trim("/"c)
+            If tag.Length = 0 OrElse tag.Contains("/"c) Then Return Nothing
+            Dim v = ParseVersion(tag)
+            If v Is Nothing Then Return Nothing
+            Dim info As New UpdateInfo()
+            info.TagName = tag
+            info.Version = v
+            info.PageUrl = TagPrefix & Uri.EscapeDataString(tag)
+            info.DownloadUrl = DownloadPrefix & Uri.EscapeDataString(tag) & "/" & ExeAssetName
+            Dim cur = New Version(current.Major, current.Minor, Math.Max(0, current.Build))
+            info.IsNewer = v > cur
+            Return info
         End Function
 
-        Private Shared Function NewClient(timeoutSeconds As Integer) As HttpClient
-            Dim c As New HttpClient With {.Timeout = TimeSpan.FromSeconds(timeoutSeconds)}
+        ''' <summary>Liest die SHA-256-Prüfsumme (64 Hex-Zeichen am Anfang) aus einer .sha256-Datei oder gibt Nothing zurück.</summary>
+        Public Shared Function ParseSha256(text As String) As String
+            If text Is Nothing Then Return Nothing
+            Dim t = text.Trim()
+            If t.Length < 64 Then Return Nothing
+            Dim h = t.Substring(0, 64).ToLowerInvariant()
+            For Each ch In h
+                If Not Uri.IsHexDigit(ch) Then Return Nothing
+            Next
+            Return h
+        End Function
+
+        ''' <summary>
+        ''' Hat ein Administrator die Update-Funktion abgeschaltet?
+        ''' Entweder durch die Datei "NeuroSim.noupdate" neben der EXE oder durch den Registry-Wert
+        ''' HKEY_LOCAL_MACHINE\Software\Policies\NeuroSim, DisableUpdate = 1.
+        ''' </summary>
+        Public Shared ReadOnly Property DisabledByAdministrator As Boolean
+            Get
+                Try
+                    Dim exe = ExePath
+                    If Not String.IsNullOrEmpty(exe) AndAlso File.Exists(Path.Combine(Path.GetDirectoryName(exe), DisableFileName)) Then Return True
+                Catch
+                End Try
+                Try
+                    Using key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(PolicyKey)
+                        If key IsNot Nothing Then
+                            Dim value = key.GetValue("DisableUpdate")
+                            If value IsNot Nothing AndAlso value.ToString() = "1" Then Return True
+                        End If
+                    End Using
+                Catch
+                End Try
+                Return False
+            End Get
+        End Property
+
+        Private Shared Function NewClient(timeoutSeconds As Integer, Optional followRedirects As Boolean = True) As HttpClient
+            Dim handler As New HttpClientHandler With {.AllowAutoRedirect = followRedirects}
+            Dim c As New HttpClient(handler) With {.Timeout = TimeSpan.FromSeconds(timeoutSeconds)}
             c.DefaultRequestHeaders.UserAgent.ParseAdd("NeuroSim-Updater")
-            c.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json")
             Return c
         End Function
 
         ''' <summary>Fragt das neueste Release ab. Gibt Nothing zurück, wenn es noch kein Release gibt.</summary>
         Public Shared Async Function CheckAsync() As Task(Of UpdateInfo)
-            Using client = NewClient(10)
-                Using resp = Await client.GetAsync(ApiUrl)
-                    If resp.StatusCode = Net.HttpStatusCode.NotFound Then Return Nothing
-                    resp.EnsureSuccessStatusCode()
-                    Dim json = Await resp.Content.ReadAsStringAsync()
-                    Return ParseRelease(json, AppInfo.Version)
+            If DisabledByAdministrator Then Throw New InvalidOperationException("Die Update-Funktion wurde vom Administrator abgeschaltet.")
+            Dim info As UpdateInfo = Nothing
+            Using client = NewClient(10, followRedirects:=False)
+                Using resp = Await client.GetAsync(LatestUrl)
+                    Dim code = CInt(resp.StatusCode)
+                    If code = 404 Then Return Nothing
+                    Dim target = resp.Headers.Location
+                    If code < 300 OrElse code >= 400 OrElse target Is Nothing Then Throw New HttpRequestException("Unerwartete Antwort von GitHub.")
+                    If Not target.IsAbsoluteUri Then target = New Uri(New Uri(LatestUrl), target)
+                    info = ParseLatestLocation(target.AbsoluteUri, AppInfo.Version)
                 End Using
             End Using
+            If info Is Nothing OrElse Not info.IsNewer Then Return info
+
+            ' Prüfsumme, sofern dem Release eine Datei NeuroSim.exe.sha256 beiliegt
+            Try
+                Using client = NewClient(10)
+                    Using resp = Await client.GetAsync(info.DownloadUrl & ".sha256")
+                        If resp.IsSuccessStatusCode Then info.Sha256 = ParseSha256(Await resp.Content.ReadAsStringAsync())
+                    End Using
+                End Using
+            Catch
+            End Try
+            Return info
         End Function
 
         Private Shared ReadOnly Property ExePath As String
@@ -160,6 +205,7 @@ Namespace Services
         ''' </summary>
         Public Shared Async Function DownloadAndInstallAsync(info As UpdateInfo, progress As IProgress(Of Double)) As Task(Of Boolean)
             If info Is Nothing OrElse String.IsNullOrEmpty(info.DownloadUrl) Then Throw New InvalidOperationException("Das Release enthält keine EXE-Datei.")
+            If DisabledByAdministrator Then Throw New InvalidOperationException("Die Update-Funktion wurde vom Administrator abgeschaltet.")
             If Not CanSelfUpdate Then Throw New InvalidOperationException("Die Anwendung läuft im Entwicklungsmodus und kann sich nicht selbst ersetzen.")
             Dim exe = ExePath
             Dim newPath = exe & ".new"
@@ -264,12 +310,12 @@ Namespace Services
             End Try
         End Sub
 
-        ''' <summary>Beim Start automatisch nach Updates suchen (Standard: ja).</summary>
+        ''' <summary>Beim Start automatisch nach Updates suchen (Standard: nein, bis der Benutzer zugestimmt hat).</summary>
         Public Property AutoUpdateCheck As Boolean
             Get
                 Dim v As String = Nothing
-                If Load().TryGetValue("AutoUpdateCheck", v) Then Return v <> "0"
-                Return True
+                If Load().TryGetValue("AutoUpdateCheck", v) Then Return v = "1"
+                Return False
             End Get
             Set(value As Boolean)
                 Dim d = Load()
@@ -277,6 +323,31 @@ Namespace Services
                 Save(d)
             End Set
         End Property
+
+        ''' <summary>Wurde der Benutzer schon gefragt, ob automatisch nach Updates gesucht werden darf?</summary>
+        Public ReadOnly Property AutoUpdateAsked As Boolean
+            Get
+                Return Load().ContainsKey("AutoUpdateCheck")
+            End Get
+        End Property
+
+        Private Function Today() As String
+            Return Date.Today.ToString("yyyy-MM-dd", Globalization.CultureInfo.InvariantCulture)
+        End Function
+
+        ''' <summary>Die automatische Suche läuft höchstens einmal am Tag.</summary>
+        Public ReadOnly Property UpdateCheckDueToday As Boolean
+            Get
+                Dim v As String = Nothing
+                Return Not (Load().TryGetValue("LastUpdateCheck", v) AndAlso v = Today())
+            End Get
+        End Property
+
+        Public Sub MarkUpdateChecked()
+            Dim d = Load()
+            d("LastUpdateCheck") = Today()
+            Save(d)
+        End Sub
 
     End Module
 

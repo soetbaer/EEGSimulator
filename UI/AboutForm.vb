@@ -80,7 +80,9 @@ Namespace UI
             _chkAuto.Text = "Beim Start automatisch nach Updates suchen"
             _chkAuto.AutoSize = True
             _chkAuto.Location = New Point(24, 414)
-            _chkAuto.Checked = AppSettings.AutoUpdateCheck
+            Dim locked = Updater.DisabledByAdministrator
+            _chkAuto.Checked = AppSettings.AutoUpdateCheck AndAlso Not locked
+            _chkAuto.Enabled = Not locked
             AddHandler _chkAuto.CheckedChanged, Sub() AppSettings.AutoUpdateCheck = _chkAuto.Checked
 
             _btnCheck.Text = "Jetzt nach Updates suchen"
@@ -93,7 +95,9 @@ Namespace UI
             _lblStatus.Size = New Size(300, 44)
             _lblStatus.TextAlign = ContentAlignment.MiddleLeft
             _lblStatus.ForeColor = Theme.TextMuted
-            _lblStatus.Text = "Bei der Suche wird nur die neueste Versionsnummer bei GitHub abgefragt."
+            _btnCheck.Enabled = Not locked
+            _lblStatus.Text = If(locked, "Die Update-Funktion wurde vom Administrator abgeschaltet.",
+                                 "Bei der Suche wird nur die neueste Versionsnummer bei GitHub abgefragt.")
 
             ' Breiten an die Seite anpassen (TabPages bekommen ihre Größe erst beim Anzeigen)
             Dim fit = Sub()
@@ -191,12 +195,12 @@ Namespace UI
 
             Dim head As New Label With {.Text = $"{AppInfo.Name} {info.VersionText} ist verfügbar", .Font = Theme.FontTitle, .ForeColor = Theme.TextDark,
                                         .AutoSize = True, .Location = New Point(20, 18)}
-            Dim subh As New Label With {.Text = $"Installiert ist Version {AppInfo.VersionText}. Das ist neu:", .ForeColor = Theme.TextMuted,
+            Dim subh As New Label With {.Text = $"Installiert ist Version {AppInfo.VersionText}.", .ForeColor = Theme.TextMuted,
                                         .AutoSize = True, .Location = New Point(22, 54)}
             Dim notes As New TextBox With {.Multiline = True, .ReadOnly = True, .ScrollBars = ScrollBars.Vertical, .Location = New Point(22, 82),
                                            .Size = New Size(556, 220), .BackColor = Theme.LabelColumn, .ForeColor = Theme.TextDark,
                                            .BorderStyle = BorderStyle.FixedSingle, .TabStop = False,
-                                           .Text = If(String.IsNullOrWhiteSpace(info.Notes), "(Keine Beschreibung vorhanden.)",
+                                           .Text = If(String.IsNullOrWhiteSpace(info.Notes), "Was sich geändert hat, steht auf der Release-Seite (Schaltfläche »Release-Seite öffnen«).",
                                                       info.Notes.Replace(vbCrLf, vbLf).Replace(vbLf, Environment.NewLine))}
 
             _lblState.Location = New Point(22, 310)

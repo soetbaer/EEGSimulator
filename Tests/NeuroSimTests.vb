@@ -148,24 +148,26 @@ Public Class NeuroSimTests
     End Sub
 
     <Fact>
-    Public Sub Release_mit_EXE_wird_als_neuer_erkannt()
-        Dim json = "{""tag_name"":""1.0.1"",""assets"":[{""name"":""NeuroSim.exe""," &
-                   """browser_download_url"":""https://github.com/soetbaer/EEGSimulator/releases/download/1.0.1/NeuroSim.exe""," &
-                   """digest"":""sha256:ABCD""}]}"
-        Dim info = Updater.ParseRelease(json, New Version(1, 0, 0))
+    Public Sub Neuestes_Release_wird_aus_der_Weiterleitung_gelesen()
+        Dim info = Updater.ParseLatestLocation("https://github.com/soetbaer/EEGSimulator/releases/tag/1.0.1", New Version(1, 0, 0))
         Assert.True(info.IsNewer)
-        Assert.Equal("abcd", info.Sha256)
-        Assert.NotNull(info.DownloadUrl)
-        Assert.False(Updater.ParseRelease(json, New Version(1, 0, 1)).IsNewer)
+        Assert.Equal("https://github.com/soetbaer/EEGSimulator/releases/download/1.0.1/NeuroSim.exe", info.DownloadUrl)
+        Assert.False(Updater.ParseLatestLocation("https://github.com/soetbaer/EEGSimulator/releases/tag/v1.0.1", New Version(1, 0, 1)).IsNewer)
     End Sub
 
     <Fact>
-    Public Sub Download_von_fremder_Adresse_wird_abgelehnt()
-        Dim json = "{""tag_name"":""v9.0.0"",""assets"":[{""name"":""NeuroSim.exe""," &
-                   """browser_download_url"":""https://example.com/NeuroSim.exe""}]}"
-        Dim info = Updater.ParseRelease(json, New Version(1, 0, 0))
-        Assert.True(info.IsNewer)
-        Assert.Null(info.DownloadUrl)
+    Public Sub Weiterleitung_ohne_Release_oder_auf_fremde_Adresse_wird_abgelehnt()
+        Assert.Null(Updater.ParseLatestLocation("https://github.com/soetbaer/EEGSimulator/releases", New Version(1, 0, 0)))
+        Assert.Null(Updater.ParseLatestLocation("https://example.com/soetbaer/EEGSimulator/releases/tag/9.0.0", New Version(1, 0, 0)))
+        Assert.Null(Updater.ParseLatestLocation("https://github.com/soetbaer/EEGSimulator/releases/tag/9.0.0/../../x", New Version(1, 0, 0)))
+    End Sub
+
+    <Fact>
+    Public Sub Pruefsumme_wird_aus_der_sha256_Datei_gelesen()
+        Dim hash = New String("a"c, 60) & "0F9b"
+        Assert.Equal(hash.ToLowerInvariant(), Updater.ParseSha256(hash & "  NeuroSim.exe" & vbLf))
+        Assert.Null(Updater.ParseSha256("keine Prüfsumme"))
+        Assert.Null(Updater.ParseSha256(New String("z"c, 64)))
     End Sub
 
 End Class

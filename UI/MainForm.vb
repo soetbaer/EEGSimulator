@@ -774,9 +774,20 @@ Namespace UI
         Protected Overrides Async Sub OnShown(e As EventArgs)
             MyBase.OnShown(e)
             Updater.CleanupOldVersion()
-            If Not AppSettings.AutoUpdateCheck Then Return
+            If Updater.DisabledByAdministrator Then Return
+            If Not AppSettings.AutoUpdateAsked Then
+                ' einmalige Frage beim ersten Start: ohne Zustimmung keine Anfrage an GitHub
+                Dim answer = MessageBox.Show(Me,
+                    "Darf NeuroSim beim Start nach neuen Versionen suchen?" & vbCrLf & vbCrLf &
+                    "Dazu wird höchstens einmal am Tag eine Anfrage an GitHub gesendet. GitHub sieht dabei technisch bedingt die IP-Adresse dieses Rechners. Nutzungsdaten werden nicht übertragen." & vbCrLf & vbCrLf &
+                    "Sie können die Auswahl jederzeit im Info-Dialog (F1) ändern.",
+                    $"{AppInfo.Name} – Updates", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2)
+                AppSettings.AutoUpdateCheck = (answer = DialogResult.Yes)
+            End If
+            If Not AppSettings.AutoUpdateCheck OrElse Not AppSettings.UpdateCheckDueToday Then Return
             Try
                 Dim info = Await Updater.CheckAsync()
+                AppSettings.MarkUpdateChecked()
                 If info IsNot Nothing AndAlso info.IsNewer AndAlso Not IsDisposed Then UpdatePrompt.ShowFor(Me, info)
             Catch
                 ' kein Netz oder GitHub nicht erreichbar: beim Start nicht stören
