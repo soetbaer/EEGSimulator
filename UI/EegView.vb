@@ -180,7 +180,7 @@ Namespace UI
             Return pxPerMm / CSng(Sensitivity) / CSng(ch.ScaleDivisor)
         End Function
 
-        ''' <summary>Hintergrund: Papier, Kanalnamen, Raster, Eichbalken, Legende – alles, was sich beim Abspielen nicht ändert.</summary>
+        ''' <summary>Hintergrund ohne Schrift: Papier, Kanalspalte, markierter Kanal, Raster.</summary>
         Private Function Background() As Bitmap
             If _back IsNot Nothing AndAlso _backVersion = _version AndAlso _back.Size = Size Then Return _back
             If _back IsNot Nothing Then _back.Dispose()
@@ -215,33 +215,44 @@ Namespace UI
                     Next
                 End Using
 
-                ' Kanalnamen (bei vielen Kanälen kleinere Schrift, zweite Zeile nur wenn Platz ist)
-                Dim nameFont = If(rowH < 26 * Sc, Theme.FontSmallBold, Theme.FontChannel)
-                Dim h1 = TextRenderer.MeasureText("X", nameFont).Height
-                Dim h2 = TextRenderer.MeasureText("X", Theme.FontSmall).Height
-                For c = 0 To nCh - 1
-                    Dim r As New Rectangle(CInt(10 * Sc), CInt(plot.Top + rowH * c), CInt(plot.Left - 14 * Sc), CInt(rowH))
-                    Dim ch = _channels(c)
-                    Dim col = If(c = SelectedChannel, Theme.AccentDark, Theme.TextDark)
-                    Dim subText = SubLabelOf(ch)
-                    If subText <> "" AndAlso rowH >= h1 + h2 Then
-                        Dim y0 = r.Y + (r.Height - h1 - h2) \ 2
-                        TextRenderer.DrawText(g, ch.Label, nameFont, New Point(r.X, y0), col)
-                        TextRenderer.DrawText(g, subText, Theme.FontSmall, New Point(r.X, y0 + h1), Theme.TextMuted)
-                    Else
-                        TextRenderer.DrawText(g, ch.Label, nameFont, r, col, TextFormatFlags.VerticalCenter Or TextFormatFlags.Left)
-                    End If
-                Next
                 Using pLine As New Pen(Theme.Border, 1)
                     g.DrawLine(pLine, plot.Left, 0, plot.Left, Height)
                 End Using
 
-                g.SmoothingMode = SmoothingMode.AntiAlias
-                DrawCalibration(g, plot, DeviceDpi / 25.4F)
-                DrawLegend(g, plot)
             End Using
             Return _back
         End Function
+
+        ''' <summary>
+        ''' Beschriftung: Kanalnamen, Eichbalken, Legende. Sie wird bei jedem Zeichnen direkt auf den Bildschirm
+        ''' geschrieben – in ein zwischengespeichertes Bild gezeichnete Schrift verliert die Kantenglättung.
+        ''' </summary>
+        Private Sub DrawLabels(g As Graphics, plot As RectangleF)
+            Dim nCh = _filtered.Length
+            Dim rowH = plot.Height / nCh
+            ' Kanalnamen (bei vielen Kanälen kleinere Schrift, zweite Zeile nur wenn Platz ist)
+            Dim nameFont = If(rowH < 26 * Sc, Theme.FontSmallBold, Theme.FontChannel)
+            Dim h1 = TextRenderer.MeasureText("X", nameFont).Height
+            Dim h2 = TextRenderer.MeasureText("X", Theme.FontSmall).Height
+            For c = 0 To nCh - 1
+                Dim r As New Rectangle(CInt(10 * Sc), CInt(plot.Top + rowH * c), CInt(plot.Left - 14 * Sc), CInt(rowH))
+                Dim ch = _channels(c)
+                Dim col = If(c = SelectedChannel, Theme.AccentDark, Theme.TextDark)
+                Dim subText = SubLabelOf(ch)
+                If subText <> "" AndAlso rowH >= h1 + h2 Then
+                    Dim y0 = r.Y + (r.Height - h1 - h2) \ 2
+                    TextRenderer.DrawText(g, ch.Label, nameFont, New Point(r.X, y0), col)
+                    TextRenderer.DrawText(g, subText, Theme.FontSmall, New Point(r.X, y0 + h1), Theme.TextMuted)
+                Else
+                    TextRenderer.DrawText(g, ch.Label, nameFont, r, col, TextFormatFlags.VerticalCenter Or TextFormatFlags.Left)
+                End If
+            Next
+            Dim oldMode = g.SmoothingMode
+            g.SmoothingMode = SmoothingMode.AntiAlias
+            DrawCalibration(g, plot, DeviceDpi / 25.4F)
+            DrawLegend(g, plot)
+            g.SmoothingMode = oldMode
+        End Sub
 
         ''' <summary>Kurven einer ganzen Seite ab "origin" auf durchsichtigem Grund.</summary>
         Private Function Page(origin As Double) As Bitmap
@@ -330,6 +341,7 @@ Namespace UI
             Dim secPx = plot.Width / CSng(WindowSeconds)
 
             g.DrawImageUnscaled(Background(), 0, 0)
+            DrawLabels(g, plot)
 
             If Not SweepActive Then
                 g.DrawImageUnscaled(Page(StartSeconds), 0, 0)
