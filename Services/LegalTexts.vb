@@ -13,7 +13,7 @@ Namespace Services
         Public ReadOnly Property About As String
             Get
                 Return String.Join(NL, {
-                    $"{AppInfo.Name} ist eine interaktive Schulungsanwendung für medizinisch-technische Assistenzberufe in der Neurologie. Sie zeigt an simulierten EEG-Kurven, wie sich LowCut, HiCut, Amplitude, 50-Hz-Filter, EKG-Filter und Elektrodenimpedanzen auswirken.",
+                    $"{AppInfo.Name} ist eine interaktive Schulungsanwendung für Medizinische Technologinnen und Technologen für Funktionsdiagnostik (MTF) und weiteres Fachpersonal in der Neurophysiologie. Sie zeigt an simulierten EEG-Kurven, wie sich LowCut, HiCut, Amplitude, 50-Hz-Filter, EKG-Filter und Elektrodenimpedanzen auswirken.",
                     "",
                     $"Entwickler: {AppInfo.Developer}",
                     $"Copyright © {AppInfo.CopyrightYear} {AppInfo.Developer}",

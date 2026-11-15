@@ -695,7 +695,7 @@ Namespace UI
 
         Private Shared Function NextPage(pageStart As Double) As Double
             Dim nxt = pageStart + WindowSec
-            Return If(nxt > EegSimulator.Duration - WindowSec, 0.0, nxt)
+            Return If(nxt >= EegSimulator.Duration, 0.0, nxt)
         End Function
 
         Private Sub TogglePlay()
@@ -724,8 +724,9 @@ Namespace UI
             Dim dt = Math.Min(0.5, now - _lastTick)
             _lastTick = now
             _sweepPos += dt
-            If _sweepPos >= WindowSec Then
-                _sweepPos -= WindowSec
+            ' Seitenende oder Ende der Aufnahme erreicht: nächste Seite beginnen
+            If _sweepPos >= WindowSec OrElse _pageStart + _sweepPos >= EegSimulator.Duration Then
+                _sweepPos = If(_sweepPos >= WindowSec, _sweepPos - WindowSec, 0.0)
                 _oldPageStart = _pageStart
                 _pageStart = NextPage(_pageStart)
             End If
@@ -748,15 +749,18 @@ Namespace UI
             Dim base = If(_sweep, _pageStart, _viewStart)
             _sweep = False
             _oldPageStart = Double.NaN
-            _viewStart = Math.Max(0, Math.Min(EegSimulator.Duration - WindowSec, Math.Round(base + delta)))
+            ' Seiten liegen immer auf vollen 10 s; die letzte Seite ist nur teilweise gefüllt
+            Dim lastPage = Math.Floor((EegSimulator.Duration - 0.001) / WindowSec) * WindowSec
+            _viewStart = Math.Max(0, Math.Min(lastPage, Math.Round((base + delta) / WindowSec) * WindowSec))
             ApplySweepToView()
         End Sub
 
         Private Sub UpdateTimeLabel()
             If _sweep Then
-                _lblTime.Text = $"Schreibt bei {_pageStart + _sweepPos:0.0} s  von {EegSimulator.Duration:0} s"
+                _lblTime.Text = $"Schreibt bei {(_pageStart + _sweepPos).ToString("0.0", De)} s  von {EegSimulator.Duration.ToString("0", De)} s"
             Else
-                _lblTime.Text = $"{_viewStart:0} – {_viewStart + WindowSec:0} s  von {EegSimulator.Duration:0} s"
+                Dim pageEnd = Math.Min(_viewStart + WindowSec, EegSimulator.Duration)
+                _lblTime.Text = $"{_viewStart.ToString("0", De)} – {pageEnd.ToString("0", De)} s  von {EegSimulator.Duration.ToString("0", De)} s"
             End If
         End Sub
 
@@ -784,7 +788,7 @@ Namespace UI
                 ShowInfo()
                 Return True
             End If
-            ' Leertaste = Abspielen/Pause, Bild auf/ab = blättern (wenn kein Eingabefeld aktiv ist)
+            ' P = Abspielen/Anhalten, Pfeiltasten und Bild auf/ab = blättern (wenn kein Eingabefeld aktiv ist)
             If TypeOf ActiveControl Is ComboBox OrElse TypeOf ActiveControl Is ImpedanceView Then Return MyBase.ProcessCmdKey(msg, keyData)
             Select Case keyData
                 Case Keys.PageDown, Keys.Right : MoveView(WindowSec) : Return True

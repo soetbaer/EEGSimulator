@@ -171,7 +171,7 @@ Namespace Simulation
             Dim sp(SampleCount - 1) As Double
             Dim ts = 1.6
             While ts < Duration - 1
-                AddEvent(sp, ts, 0.6, Function(tau) Gauss(tau, 0, 0.011) - 0.3 * Gauss(tau, 0.035, 0.015) + 0.45 * Gauss(tau, 0.2, 0.07))
+                AddEvent(sp, ts, 0.6, Function(tau) Gauss(tau, 0, 0.007) - 0.3 * Gauss(tau, 0.028, 0.012) + 0.45 * Gauss(tau, 0.2, 0.07))
                 ts += 1.7 + rng.NextDouble() * 2.3
             End While
             _parts(SignalPart.Spikes) = Spread(SignalPart.Spikes, sp, sp, 120)

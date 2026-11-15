@@ -1,6 +1,6 @@
 # NeuroSim – Konzept: EEG-Filter und Impedanzen verständlich machen
 
-Zielgruppe: MTA/MFA in der Neurologie, keine Techniker.
+Zielgruppe: Medizinische Technologinnen und Technologen für Funktionsdiagnostik (MTF, früher MTA-F), MFA und weiteres Fachpersonal in der Neurophysiologie, keine Techniker.
 Grundsatz: **Erst sehen, dann verstehen.** Keine Formeln im Vordergrund, sondern Bilder, Vergleiche und sofortiges Ausprobieren.
 
 ## 1. Didaktischer Aufbau

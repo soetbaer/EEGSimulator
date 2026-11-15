@@ -78,8 +78,13 @@ Namespace Training
                 If s.HighCutHz < 70 Then
                     list.Add(InfoBlock.Warning("Diese Einstellung liegt unter den Empfehlungen für die Routine-Ableitung (DGKN und ACNS: mindestens 70 Hz). Nur vorübergehend zur Betrachtung verwenden und dokumentieren."))
                 End If
-                If s.HighCutHz <= 35 AndAlso has(SignalPart.Spikes) Then
-                    list.Add(InfoBlock.Warning("Niedriger HiCut: Spikes werden abgerundet und kleiner – sie können dann wie harmlose Wellen aussehen."))
+                If has(SignalPart.Spikes) Then
+                    ' Nur den HiCut messen, damit die Aussage nicht vom LowCut abhängt
+                    Dim hiOnly = FilterChain.Create(0, s.HighCutHz, False, EegSimulator.SampleRate)
+                    Dim spikeRest = MeasurePassThrough(sim, SignalPart.Spikes, hiOnly)
+                    If spikeRest < 0.8 Then
+                        list.Add(InfoBlock.Warning($"Niedriger HiCut: Spikes werden abgerundet und verlieren etwa {((1 - spikeRest) * 100).ToString("0", De)} % ihrer Höhe – sie können dann wie harmlose Wellen aussehen."))
+                    End If
                 End If
                 If s.HighCutHz <= 35 AndAlso has(SignalPart.Emg) Then
                     list.Add(InfoBlock.Warning("Gefiltertes Muskelartefakt kann wie Beta-Aktivität oder wie steile Wellen aussehen! Besser: Patient entspannen lassen (Mund leicht öffnen, Stirn locker)."))
@@ -111,7 +116,7 @@ Namespace Training
                 Dim thermalUv = Math.Sqrt(4 * 1.380649E-23 * 310 * zMax * 1000 * 70) * 1000000.0
                 list.Add(InfoBlock.Para($"Zur Einordnung: Kleiner wird das EEG dadurch nicht – bei {zMax.ToString("0", De)} kΩ gehen an einem Verstärker mit 100 MΩ Eingangswiderstand nur etwa {lossPct.ToString("0.00", De)} % verloren. Auch das reine Widerstandsrauschen ist winzig (rechnerisch ca. {thermalUv.ToString("0.0", De)} µV). Das Problem ist der instabile, störanfällige Kontakt."))
             ElseIf mid.Count > 0 Then
-                list.Add(InfoBlock.Tip($"Impedanz grenzwertig: {String.Join(", ", mid.Select(zLabel))}. Bis 10 kΩ ist noch zulässig, Ziel sind höchstens 5 kΩ und möglichst gleiche Werte an allen Elektroden."))
+                list.Add(InfoBlock.Tip($"Impedanz erhöht: {String.Join(", ", mid.Select(zLabel))}. Bis 10 kΩ ist noch zulässig – besser sind niedrigere und vor allem möglichst gleiche Werte an allen Elektroden."))
             End If
             If s.SaltBridge Then
                 list.Add(InfoBlock.Warning("Gelbrücke zwischen F3 und C3: Elektrodenpaste verbindet beide Elektroden leitend. Sie messen fast dasselbe, der Kanal F3-C3 wird nahezu flach. Das kann wie eine echte Abflachung fehlgedeutet werden! Warnzeichen: Impedanz unter 1 kΩ."))
@@ -147,6 +152,11 @@ Namespace Training
                 End If
             ElseIf has(SignalPart.Ecg) Then
                 list.Add(InfoBlock.Tip("EKG-Artefakt sichtbar: kleine, regelmäßige Zacken genau im Takt der R-Zacken im EKG-Kanal (unten). Der EKG-Filter kann sie entfernen."))
+            End If
+
+            ' ---------- Augen auf / zu ----------
+            If has(SignalPart.Alpha) AndAlso has(SignalPart.Blinks) Then
+                list.Add(InfoBlock.Para("Hinweis: Augenblinzeln tritt bei offenen Augen auf, der Alpha-Rhythmus vor allem bei geschlossenen. In einer echten Ableitung sieht man beides meist nicht gleichzeitig."))
             End If
 
             ' ---------- Amplitude ----------

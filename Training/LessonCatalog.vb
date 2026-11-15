@@ -75,11 +75,12 @@ Namespace Training
             ' 4 ---------------------------------------------------------------
             L.Add(New Lesson With {
                 .Title = "Vorsicht: LowCut zu hoch",
-                .Preset = Preset(0.03, 70, False, False, 7, 1, True, False, SignalPart.Alpha, SignalPart.Beta, SignalPart.Delta, SignalPart.Blinks),
+                .Preset = Preset(0.03, 70, False, False, 7, 1, True, False, SignalPart.Beta, SignalPart.Delta, SignalPart.Blinks),
                 .Blocks = New List(Of InfoBlock) From {
                     InfoBlock.Para("Ein zu starker LowCut entfernt nicht nur Störungen, sondern auch echte langsame Hirnaktivität. In dieser Aufnahme steckt ein Delta-Herd links zentral (F3-C3 und C3-P3)."),
                     InfoBlock.Para("Eingestellt ist gerade TC 0,03 s (5,3 Hz). Grau unterlegt sehen Sie das ungefilterte Original."),
                     InfoBlock.Warning("Bei TC 0,03 s sind die Delta-Wellen fast verschwunden – ein krankhafter Befund kann so übersehen werden!"),
+                    InfoBlock.Para("Die Augen sind in dieser Aufnahme geöffnet: Deshalb fehlt der Alpha-Rhythmus, und man sieht Augenblinzeln."),
                     InfoBlock.Para("Auch das Augenblinzeln in Fp1-F3 und Fp2-F4 (großer Ausschlag nach unten) wird verformt: Es wird schmaler und bekommt danach einen Gegenschwinger nach oben."),
                     InfoBlock.Tip("Empfehlung der DGKN für die Routine-Ableitung: Hochpass höchstens 0,5 Hz, das entspricht TC 0,3 s. (Die US-Leitlinie der ACNS nennt höchstens 1 Hz.) Stärker filtern nur bewusst und vorübergehend – und im Protokoll vermerken."),
                     InfoBlock.TryIt("Wechseln Sie zwischen TC 0,3 s und TC 0,03 s und vergleichen Sie Kanal F3-C3. Achten Sie in der Frequenz-Ansicht auf die blauen Delta-Balken.")
@@ -103,7 +104,7 @@ Namespace Training
                 .Preset = Preset(0.3, 15, False, False, 7, 1, True, False, SignalPart.Alpha, SignalPart.Spikes, SignalPart.Emg),
                 .Blocks = New List(Of InfoBlock) From {
                     InfoBlock.Para("Spikes (spitze Potentiale, Dauer 20 bis unter 70 Millisekunden) sind wichtige Hinweise, z. B. bei Epilepsie. Weil sie so steil sind, enthalten sie viele schnelle Anteile."),
-                    InfoBlock.Warning("Bei einem HiCut von 15 Hz werden Spikes stumpf und kleiner – sie können dann wie harmlose Wellen aussehen."),
+                    InfoBlock.Warning("Bei einem HiCut von 15 Hz werden Spikes stumpfer und breiter und verlieren rund 40 % ihrer Höhe – sie können dann wie harmlose Wellen aussehen."),
                     InfoBlock.Warning("Gefiltertes Muskelartefakt wird zu gleichmäßigeren Wellen, die wie Beta-Aktivität oder sogar wie steile Wellen aussehen können. Ein Filter macht aus einer Störung also nicht immer 'nichts' – manchmal macht er etwas Täuschendes daraus."),
                     InfoBlock.Para("Grau unterlegt sehen Sie wieder das Original zum Vergleich."),
                     InfoBlock.TryIt("Vergleichen Sie die Spikes in F3-C3 und C3-P3 bei 70 Hz und bei 15 Hz. Achten Sie auch auf die Phasenumkehr: in F3-C3 zeigt die Spitze nach unten, in C3-P3 nach oben – die Spitzen zeigen aufeinander zu. Die gemeinsame Elektrode C3 ist also am stärksten negativ: Dort liegt der Herd.")
@@ -131,7 +132,8 @@ Namespace Training
                 .Blocks = New List(Of InfoBlock) From {
                     InfoBlock.Para("Die Impedanz (Übergangswiderstand) beschreibt, wie gut der elektrische Kontakt zwischen Elektrode und Kopfhaut ist. Sie wird in Kiloohm (kΩ) gemessen. Niedrig heißt: guter Kontakt. Hornschicht, Hautfett, Haare unter der Elektrode oder eingetrocknete Paste erhöhen sie."),
                     InfoBlock.Para("Rechts sehen Sie jetzt im Reiter 'Impedanzen' das Kopfschema – wie bei der Impedanzmessung am Gerät. C3 hat hier 25 kΩ (rot), alle anderen Elektroden 2–3 kΩ."),
-                    InfoBlock.Tip("Empfehlung: höchstens 5 kΩ, in Ausnahmefällen bis 10 kΩ, nicht unter 1 kΩ – und MÖGLICHST GLEICH, weil stark unterschiedliche Übergangswiderstände die Gleichtaktunterdrückung beeinträchtigen. Die Impedanzen werden zu Beginn und am Ende der Ableitung dokumentiert, bei Kindern auch zwischendurch wiederholt geprüft."),
+                    InfoBlock.Tip("Empfehlung: unter 10 kΩ und MÖGLICHST GLEICHMÄSSIG (nicht unter 1 kΩ), weil stark unterschiedliche Übergangswiderstände die Gleichtaktunterdrückung beeinträchtigen."),
+                    InfoBlock.Para("Der Impedanztest gehört zur Aufzeichnung: Er sollte vor und nach der Ableitung mit aufgezeichnet werden, bei Artefakten auch zwischendurch. Die meisten Geräte speichern die Messung automatisch in der Aufnahme. Bei Kindern werden die Impedanzen zwischendurch wiederholt geprüft."),
                     InfoBlock.Para("Warum ist 'gleich' so wichtig? Der EEG-Verstärker misst immer den UNTERSCHIED zwischen zwei Elektroden. Die 50-Hz-Störung aus dem Stromnetz kommt an beiden Elektroden an. Ist der Kontakt beider Elektroden gleich gut, ist die Störung an beiden gleich groß – und fällt beim Abziehen heraus (Gleichtaktunterdrückung)."),
                     InfoBlock.Para("Wie bei einer Balkenwaage: Liegt auf beiden Seiten dasselbe Gewicht, bleibt sie im Gleichgewicht. Hat aber eine Elektrode 2 kΩ und die andere 25 kΩ, kommt die Störung ungleich stark an – der Unterschied bleibt als Netzbrumm in der Kurve stehen."),
                     InfoBlock.Para("Deshalb ist der Brumm genau in den zwei Kanälen zu sehen, in denen C3 vorkommt: F3-C3 und C3-P3. (Die zusätzlichen Sprünge und die unruhige Grundlinie besprechen wir in der nächsten Lektion.)"),
@@ -187,12 +189,12 @@ Namespace Training
             L.Add(New Lesson With {
                 .Title = "Alles zusammen: Ihre Einstellung",
                 .Preset = Preset(0, 0, False, False, 7, 0, False, False,
-                                 SignalPart.Alpha, SignalPart.Beta, SignalPart.Theta, SignalPart.Blinks, SignalPart.Sweat,
+                                 SignalPart.Alpha, SignalPart.Beta, SignalPart.Theta, SignalPart.Sweat,
                                  SignalPart.Emg, SignalPart.Hum, SignalPart.Ecg).WithImpedance("P4", 15),
                 .Blocks = New List(Of InfoBlock) From {
                     InfoBlock.Para("Im Alltag kommen Störungen selten allein. Hier sind fast alle typischen Artefakte gleichzeitig eingeschaltet – und alle Filter stehen auf AUS."),
                     InfoBlock.Para("Empfehlungen der DGKN für das Routine-EEG von Erwachsenen:"),
-                    InfoBlock.Bullet("Impedanzen: höchstens 5 kΩ (Ausnahme bis 10 kΩ), nicht unter 1 kΩ, möglichst gleich"),
+                    InfoBlock.Bullet("Impedanzen: unter 10 kΩ und möglichst gleichmäßig, nicht unter 1 kΩ; Impedanztest mit aufzeichnen"),
                     InfoBlock.Bullet("LowCut: höchstens 0,5 Hz, entspricht TC 0,3 s"),
                     InfoBlock.Bullet("HiCut: mindestens 70 Hz"),
                     InfoBlock.Bullet("50-Hz-Filter: nicht routinemäßig, nur vorübergehend im Ausnahmefall"),

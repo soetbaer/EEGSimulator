@@ -4,7 +4,7 @@
 
 **Der EEG-Simulator: Filter, Impedanzen und Artefakte verstehen.**
 
-NeuroSim ist eine interaktive Schulungsanwendung (VB.NET, WinForms, .NET 8) für MTA in der Neurologie.
+NeuroSim ist eine interaktive Schulungsanwendung (VB.NET, WinForms, .NET 8) für Medizinische Technologinnen und Technologen für Funktionsdiagnostik (MTF) und weiteres Fachpersonal in der Neurophysiologie.
 Sie zeigt an simulierten EEG-Kurven, wie sich diese Einstellungen auswirken:
 - **LowCut (FU, mit Zeitkonstante)**
 - **HiCut (FO)**

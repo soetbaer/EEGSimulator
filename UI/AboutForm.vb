@@ -242,9 +242,16 @@ Namespace UI
             _lblState.Text = "Neue Version wird heruntergeladen …"
             Try
                 Dim progress As New Progress(Of Double)(Sub(p) _bar.Value = CInt(Math.Max(0, Math.Min(1, p)) * 100))
-                Await Updater.DownloadAndInstallAsync(_info, progress)
-                ' Die neue Version läuft bereits – diese Instanz beenden
-                Application.Exit()
+                Dim started = Await Updater.DownloadAndInstallAsync(_info, progress)
+                If started Then
+                    ' Die neue Version läuft bereits – diese Instanz beenden
+                    Application.Exit()
+                Else
+                    _bar.Visible = False
+                    _lblState.ForeColor = Theme.WarnText
+                    _lblState.Text = "Die neue Version ist installiert, konnte aber nicht gestartet werden. Bitte NeuroSim schließen und neu starten."
+                    _btnLater.Enabled = True
+                End If
             Catch ex As Exception
                 _bar.Visible = False
                 _lblState.ForeColor = Theme.WarnText

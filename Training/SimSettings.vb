@@ -108,7 +108,7 @@ Namespace Training
             New PartDescriptor With {.Part = SignalPart.Spikes, .Label = "Spikes (spitze Potentiale)", .Color = Theme.ColSpike, .IsBrain = True, .TypicalHz = 25,
                 .Hint = "Oberflächennegative Spike-Wave-Komplexe mit Phasenumkehr bei C3."},
             New PartDescriptor With {.Part = SignalPart.Blinks, .Label = "Augenblinzeln", .Color = Theme.ColBlink, .IsBrain = False, .TypicalHz = 1.0,
-                .Hint = "Große Ausschläge nach unten in Fp1-F3 und Fp2-F4 (Fp wird positiv)."},
+                .Hint = "Große Ausschläge nach unten in Fp1-F3 und Fp2-F4 (Fp wird positiv). Tritt bei offenen Augen auf."},
             New PartDescriptor With {.Part = SignalPart.Sweat, .Label = "Schwitzartefakt / Drift", .Color = Theme.ColDrift, .IsBrain = False, .TypicalHz = 0.25,
                 .Hint = "Sehr langsames Wandern der Grundlinie (unter 0,5 Hz)."},
             New PartDescriptor With {.Part = SignalPart.Emg, .Label = "Muskelartefakt (EMG)", .Color = Theme.ColFast, .IsBrain = False, .TypicalHz = 70,

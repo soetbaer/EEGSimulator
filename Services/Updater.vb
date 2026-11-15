@@ -155,9 +155,10 @@ Namespace Services
         ''' <summary>
         ''' Lädt die neue EXE, prüft sie und setzt sie an die Stelle der laufenden EXE.
         ''' Die alte Datei bleibt als ".old" liegen und wird beim nächsten Start gelöscht.
-        ''' Danach muss die Anwendung beendet werden; die neue Version ist bereits gestartet.
+        ''' Rückgabe True: Die neue Version ist gestartet, diese Instanz muss beendet werden.
+        ''' Rückgabe False: Die neue Version ist installiert, ließ sich aber nicht starten.
         ''' </summary>
-        Public Shared Async Function DownloadAndInstallAsync(info As UpdateInfo, progress As IProgress(Of Double)) As Task
+        Public Shared Async Function DownloadAndInstallAsync(info As UpdateInfo, progress As IProgress(Of Double)) As Task(Of Boolean)
             If info Is Nothing OrElse String.IsNullOrEmpty(info.DownloadUrl) Then Throw New InvalidOperationException("Das Release enthält keine EXE-Datei.")
             If Not CanSelfUpdate Then Throw New InvalidOperationException("Die Anwendung läuft im Entwicklungsmodus und kann sich nicht selbst ersetzen.")
             Dim exe = ExePath
@@ -210,7 +211,12 @@ Namespace Services
                 Throw
             End Try
 
-            Process.Start(New ProcessStartInfo(exe) With {.UseShellExecute = True})
+            Try
+                Process.Start(New ProcessStartInfo(exe) With {.UseShellExecute = True})
+            Catch
+                Return False
+            End Try
+            Return True
         End Function
 
         ''' <summary>Räumt Reste eines früheren Updates weg (beim Start aufrufen).</summary>

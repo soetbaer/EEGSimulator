@@ -146,6 +146,8 @@ Namespace UI
                     If SweepActive AndAlso t - origin > SweepPos + 0.000001 Then
                         If Double.IsNaN(OldPageStart) Then showLabel = False Else labelTime = OldPageStart + (t - origin)
                     End If
+                    ' hinter dem Ende der Aufnahme (letzte, nur teilweise gefüllte Seite) keine Zeitangabe
+                    If labelTime > _filtered(0).Length / _fs + 0.000001 Then showLabel = False
                     If showLabel Then
                         Dim lbl = $"{CInt(Math.Round(labelTime))} s"
                         Dim sz = TextRenderer.MeasureText(lbl, Theme.FontSmall)
