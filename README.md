@@ -103,10 +103,6 @@ Bei jedem Push baut GitHub Actions (`.github/workflows/ci.yml`) die Anwendung un
 
 Die Update-Funktion liest die Tag-Nummer des neuesten Releases, vergleicht sie mit der Programmversion und lädt `NeuroSim.exe` aus diesem Release. Die Datei `NeuroSim.exe.sha256` ist freiwillig; liegt sie bei, wird die Prüfsumme der heruntergeladenen EXE damit verglichen.
 
-## Code-Signatur
-
-Wie die Windows-Programmdatei signiert wird und wer dafür verantwortlich ist, steht in der [Code signing policy](CODE_SIGNING_POLICY.md). Dort steht auch die Datenschutzerklärung zur Update-Funktion.
-
 ## Lizenz
 
 Copyright © 2026 F. Soetbeer

@@ -119,7 +119,21 @@ Namespace Training
             Dim zLabel = Function(i As Integer) $"{Head.Names(i)} ({z(i).ToString("0", De)} kΩ)"
 
             If bad.Count > 0 Then
-                list.Add(InfoBlock.Warning($"Impedanz zu hoch: {String.Join(", ", bad.Select(zLabel))}. Betroffen sind alle Kanäle mit dieser Elektrode: unruhige Grundlinie und plötzliche Sprünge (Elektroden-Pops), in Nachbarkanälen spiegelbildlich. Das lässt sich nicht wegfiltern – Elektrode neu setzen."))
+                ' Wo die Störung einer einzelnen Elektrode erscheint, hängt von der Verschaltung ab
+                Dim spread As String
+                Select Case montage.Kind
+                    Case MontageKind.Bipolar
+                        spread = "Betroffen sind die Kanäle mit dieser Elektrode, in den beiden Nachbarkanälen einer Kette spiegelbildlich (einmal ist sie Eingang 2, einmal Eingang 1)."
+                    Case MontageKind.Reference
+                        spread = "Betroffen ist der Kanal dieser Elektrode, ohne Spiegelbild. Ist es die Bezugselektrode, erscheint die Störung umgekehrt in allen Kanälen dieses Bezugs."
+                    Case MontageKind.Average
+                        spread = "Die Störung erscheint voll im Kanal dieser Elektrode. Geht sie in den Durchschnitt ein, taucht die Störung außerdem klein und umgekehrt in allen anderen Kanälen auf."
+                    Case MontageKind.Source
+                        spread = "Die Störung erscheint voll im Kanal dieser Elektrode und kleiner, umgekehrt in den Kanälen ihrer Nachbarelektroden."
+                    Case Else
+                        spread = "Betroffen sind die Kanäle mit dieser Elektrode."
+                End Select
+                list.Add(InfoBlock.Warning($"Impedanz zu hoch: {String.Join(", ", bad.Select(zLabel))}. Folgen: unruhige Grundlinie und plötzliche Sprünge (Elektroden-Pops). {spread} Das lässt sich nicht wegfiltern – Elektrode neu setzen."))
                 Dim zMax = bad.Max(Function(i) z(i))
                 Dim lossPct = zMax / (100000.0 + zMax) * 100
                 Dim thermalUv = Math.Sqrt(4 * 1.380649E-23 * 310 * zMax * 1000 * 70) * 1000000.0
@@ -244,7 +258,7 @@ Namespace Training
                     End If
                 Case Montages.Average
                     If has(SignalPart.Blinks) Then
-                        list.Add(InfoBlock.Warning("Durchschnittsreferenz: Das große Augenblinzeln steckt über die frontalen Elektroden im Durchschnitt und erscheint dadurch umgekehrt in ALLEN Kanälen, sogar okzipital."))
+                        list.Add(InfoBlock.Warning("Durchschnittsreferenz: Das große Augenblinzeln steckt über die frontalen Elektroden (F7, F3, Fz, F4, F8) im Durchschnitt. In allen Kanälen hinter der Stirn erscheint es dadurch umgekehrt, sogar okzipital."))
                     End If
                     If focus Then
                         list.Add(InfoBlock.Tip("Durchschnittsreferenz: Der Herd ist in C3-AV am größten. Weil er den Durchschnitt mitverschiebt, erscheint in den Kanälen abseits des Herdes ein kleiner Ausschlag in Gegenrichtung."))
