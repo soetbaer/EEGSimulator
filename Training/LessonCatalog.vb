@@ -292,7 +292,7 @@ Namespace Training
                     InfoBlock.Tip("Zeitkonstante und Grenzfrequenz sind zwei Namen für dieselbe Einstellung:  TC 0,3 s entspricht 0,53 Hz,  TC 0,1 s entspricht 1,6 Hz.  Faustregel: KLEINERE Zeitkonstante = STÄRKERER Filter."),
                     InfoBlock.Para("Woher der Name kommt: Gibt man einen Spannungssprung (Eichsignal) auf den Verstärker, fällt die Kurve wieder zur Grundlinie zurück. Die Zeitkonstante ist die Zeit, nach der nur noch 37 % des Sprungs übrig sind."),
                     InfoBlock.Para("Ein Filter schneidet nicht wie mit der Schere ab. Genau an der Grenzfrequenz bleiben noch etwa 70 % der Wellenhöhe übrig – je langsamer die Welle, desto weniger kommt durch. Das zeigt die türkise Linie in der Frequenz-Ansicht."),
-                    InfoBlock.TryIt("Stellen Sie den LowCut nacheinander auf TC 1,0 s, 0,3 s und 0,1 s. Schalten Sie dann 'Entfernten Anteil zeigen' ein: Rot ist genau das, was der Filter herausnimmt. Sie sehen: Bei TC 0,3 s bleibt ein Teil des Schwitzartefakts sichtbar – Schwitzen muss man an der Ursache bekämpfen (Raum kühlen, Haut trocknen).")
+                    InfoBlock.TryIt("Stellen Sie den LowCut nacheinander auf TC 1,0 s, 0,3 s und 0,1 s. Schalten Sie dann 'Entfernten Anteil rot zeigen' ein: Rot ist genau das, was der Filter herausnimmt. Sie sehen: Bei TC 0,3 s bleibt ein Teil des Schwitzartefakts sichtbar – Schwitzen muss man an der Ursache bekämpfen (Raum kühlen, Haut trocknen).")
                 }})
 
             L.Add(New Lesson With {
@@ -303,7 +303,7 @@ Namespace Training
                 .Blocks = New List(Of InfoBlock) From {
                     InfoBlock.Para("Ein zu starker LowCut entfernt nicht nur Störungen, sondern auch echte langsame Hirnaktivität. In dieser Aufnahme steckt ein Delta-Herd links zentral (F3-C3 und C3-P3)."),
                     InfoBlock.Para("Eingestellt ist gerade TC 0,03 s (5,3 Hz). Grau unterlegt sehen Sie das ungefilterte Original."),
-                    InfoBlock.Warning("Bei TC 0,03 s sind die Delta-Wellen fast verschwunden – ein krankhafter Befund kann so übersehen werden!"),
+                    InfoBlock.Warning("Bei TC 0,03 s schrumpfen die Delta-Wellen auf etwa ein Viertel ihrer Höhe – ein krankhafter Befund kann so übersehen werden!"),
                     InfoBlock.Para("Die Augen sind in dieser Aufnahme geöffnet: Deshalb fehlt der Alpha-Rhythmus, und man sieht Augenblinzeln."),
                     InfoBlock.Para("Auch das Augenblinzeln in Fp1-F3 und Fp2-F4 (großer Ausschlag nach unten) wird verformt: Es wird schmaler und bekommt danach einen Gegenschwinger nach oben."),
                     InfoBlock.Tip("Empfehlung der DGKN für die Routine-Ableitung: Hochpass höchstens 0,5 Hz, das entspricht TC 0,3 s. (Die US-Leitlinie der ACNS nennt höchstens 1 Hz.) Stärker filtern nur bewusst und vorübergehend – und im Protokoll vermerken."),
@@ -363,7 +363,7 @@ Namespace Training
                     InfoBlock.Bullet("2. Für jeden EEG-Kanal wird ausgerechnet, wie das Artefakt dort im Durchschnitt aussieht. Beim Mitteln vieler Herzschläge heben sich die echten Hirnwellen gegenseitig auf – übrig bleibt die typische Form des Artefakts (die Schablone)."),
                     InfoBlock.Bullet("3. Diese Schablone wird bei jedem Herzschlag abgezogen."),
                     InfoBlock.Tip("Voraussetzung ist ein sauberer EKG-Kanal! Ist das EKG gestört oder werden Herzschläge nicht erkannt, kann der Filter nicht richtig arbeiten."),
-                    InfoBlock.TryIt("Schalten Sie den EKG-Filter ein und aus und schauen Sie auf P3-O1 und P4-O2. Mit 'Entfernten Anteil zeigen' sehen Sie in Rot, was abgezogen wird. Schalten Sie danach im Reiter 'Signal' Alpha dazu: Im kräftigen Alpha-Rhythmus fällt das Artefakt viel weniger auf – der Filter arbeitet trotzdem.")
+                    InfoBlock.TryIt("Schalten Sie den EKG-Filter ein und aus und schauen Sie auf P3-O1 und P4-O2. Mit 'Entfernten Anteil rot zeigen' sehen Sie in Rot, was abgezogen wird. Schalten Sie danach im Reiter 'Signal' Alpha dazu: Im kräftigen Alpha-Rhythmus fällt das Artefakt viel weniger auf – der Filter arbeitet trotzdem.")
                 }})
 
             L.Add(New Lesson With {

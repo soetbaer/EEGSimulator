@@ -97,7 +97,7 @@ Namespace UI
             _lblStatus.ForeColor = Theme.TextMuted
             _btnCheck.Enabled = Not locked
             _lblStatus.Text = If(locked, "Die Update-Funktion wurde vom Administrator abgeschaltet.",
-                                 "Bei der Suche wird nur die neueste Versionsnummer bei GitHub abgefragt.")
+                                 "Bei der Suche wird die neueste Versionsnummer bei GitHub abgefragt, bei einer neuen Version auch ihre Versionshinweise.")
 
             ' Breiten an die Seite anpassen (TabPages bekommen ihre Größe erst beim Anzeigen)
             Dim fit = Sub()

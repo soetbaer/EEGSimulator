@@ -124,7 +124,7 @@ Namespace Training
             New PartDescriptor With {.Part = SignalPart.Alpha, .Label = "Alpha (10 Hz)", .Color = Theme.ColAlpha, .IsBrain = True, .TypicalHz = 10,
                 .Hint = "Grundrhythmus bei geschlossenen Augen, hinten betont."},
             New PartDescriptor With {.Part = SignalPart.Beta, .Label = "Beta (20 Hz)", .Color = Theme.ColBeta, .IsBrain = True, .TypicalHz = 20,
-                .Hint = "Schnelle, niedrige Wellen, frontal betont."},
+                .Hint = "Schnelle, niedrige Wellen, frontozentral betont."},
             New PartDescriptor With {.Part = SignalPart.Spikes, .Label = "Spikes (spitze Potentiale)", .Color = Theme.ColSpike, .IsBrain = True, .TypicalHz = 25,
                 .Hint = "Oberflächennegative Spike-Wave-Komplexe, Herd unter C3 (in bipolaren Reihen Phasenumkehr bei C3)."},
             New PartDescriptor With {.Part = SignalPart.Blinks, .Label = "Augenblinzeln", .Color = Theme.ColBlink, .IsBrain = False, .TypicalHz = 1.0,

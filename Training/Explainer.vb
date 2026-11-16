@@ -144,7 +144,12 @@ Namespace Training
                                $"Die beiden Elektroden dieses Kanals unterscheiden sich um {diffText} kΩ",
                                $"Die Impedanz von {Head.Names(worst.Input1)} weicht um {diffText} kΩ vom Mittelwert ihres Bezugs ab")
                 If humUv < 6 Then
-                    list.Add(InfoBlock.Good($"Netzeinstreuung ist vorhanden, aber kaum sichtbar: Die Impedanzen sind niedrig und fast gleich (größter Unterschied in einem Kanal: {diffText} kΩ). Der Verstärker kann die Störung unterdrücken."))
+                    If bad.Count = 0 Then
+                        list.Add(InfoBlock.Good($"Netzeinstreuung ist vorhanden, aber kaum sichtbar: Die Impedanzen sind niedrig und fast gleich (größter Unterschied in einem Kanal: {diffText} kΩ). Der Verstärker kann die Störung unterdrücken."))
+                    Else
+                        ' gleich hohe Impedanzen: der Brumm hebt sich auf, die Elektroden bleiben trotzdem schlecht
+                        list.Add(InfoBlock.Para($"Netzbrumm ist kaum sichtbar, weil die Elektroden innerhalb der Kanäle fast gleiche Impedanzen haben (größter Unterschied in einem Kanal: {diffText} kΩ). Die zu hohen Werte bleiben trotzdem ein Problem: Unruhe und Pops lassen sich so nicht beheben."))
+                    End If
                 ElseIf s.Notch Then
                     list.Add(InfoBlock.Good($"Der Netzbrumm (am stärksten in {chName}) ist herausgefiltert. Die Ursache bleibt aber bestehen: {cause}."))
                 Else
