@@ -306,4 +306,48 @@ Public Class NeuroSimTests
         Assert.Null(Updater.ParseSha256(New String("z"c, 64)))
     End Sub
 
+    Private Const ReleasesJson As String =
+        "[{""tag_name"":""1.0.3"",""draft"":false,""prerelease"":false,""body"":""Kurz gesagt.\r\n\r\n## Neu\r\n- **Neues Kapitel:** Text mit `Code`.\r\n\r\n## Installation\r\n`NeuroSim.exe` herunterladen.\r\n\r\n## Hinweis\r\nKein Medizinprodukt.""}," &
+        "{""tag_name"":""1.0.4-beta"",""draft"":false,""prerelease"":true,""body"":""## Neu\n- Vorschau""}," &
+        "{""tag_name"":""1.0.2"",""draft"":false,""prerelease"":false,""body"":""## Geändert\n- EKG mit eigener Größe""}," &
+        "{""tag_name"":""1.0.1"",""draft"":false,""prerelease"":false,""body"":""## Behoben\n- Alt""}]"
+
+    <Fact>
+    Sub ReleaseBody_LaesstInstallationUndHinweisWeg()
+        Dim lines = Updater.ParseReleaseBody(String.Join(vbCrLf, "Kurz.", "", "## Neu", "- **A:** b `c`", "## Installation", "herunterladen", "## Hinweis", "xyz"))
+        Assert.Equal(3, lines.Count)
+        Assert.Equal(NoteKind.Text, lines(0).Kind)
+        Assert.Equal(NoteKind.Heading, lines(1).Kind)
+        Assert.Equal("Neu", lines(1).Text)
+        Assert.Equal(NoteKind.Bullet, lines(2).Kind)
+        Assert.Equal("**A:** b c", lines(2).Text)
+        Assert.Equal("A: b c", lines(2).PlainText)
+    End Sub
+
+    <Fact>
+    Sub Versionshinweise_EineVersion_OhneVersionsUeberschrift()
+        Dim lines = Updater.BuildNoteLines(ReleasesJson, New Version(1, 0, 2), New Version(1, 0, 3))
+        Assert.DoesNotContain(lines, Function(l) l.Kind = NoteKind.Version)
+        Assert.Equal("Kurz gesagt.", lines(0).Text)
+        Assert.DoesNotContain(lines, Function(l) l.PlainText.Contains("herunterladen") OrElse l.PlainText.Contains("Medizinprodukt"))
+    End Sub
+
+    <Fact>
+    Sub Versionshinweise_UebersprungeneVersionen_NeuesteZuerst()
+        Dim lines = Updater.BuildNoteLines(ReleasesJson, New Version(1, 0, 1), New Version(1, 0, 3))
+        Dim heads = lines.Where(Function(l) l.Kind = NoteKind.Version).Select(Function(l) l.Text).ToArray()
+        Assert.Equal({"Version 1.0.3", "Version 1.0.2"}, heads)
+        Assert.DoesNotContain(lines, Function(l) l.Text = "Vorschau" OrElse l.Text = "Alt")
+        Dim text = Updater.NotesAsText(lines)
+        Assert.Contains("• Neues Kapitel: Text mit Code.", text)
+        Assert.Contains("• EKG mit eigener Größe", text)
+    End Sub
+
+    <Fact>
+    Sub Versionshinweise_UngueltigeAntwort_Leer()
+        Assert.Empty(Updater.BuildNoteLines("kein json", New Version(1, 0, 0), New Version(1, 0, 3)))
+        Assert.Empty(Updater.BuildNoteLines("{""message"":""API rate limit exceeded""}", New Version(1, 0, 0), New Version(1, 0, 3)))
+        Assert.Empty(Updater.BuildNoteLines("", New Version(1, 0, 0), New Version(1, 0, 3)))
+    End Sub
+
 End Class
