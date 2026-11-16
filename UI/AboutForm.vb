@@ -65,7 +65,7 @@ Namespace UI
             Dim ver As New Label With {.Text = $"Version {AppInfo.VersionText}", .Font = Theme.FontBold, .ForeColor = Theme.TextDark,
                                        .AutoSize = True, .Location = New Point(138, 92)}
 
-            Dim about As New TextBox With {.Multiline = True, .ReadOnly = True, .BorderStyle = BorderStyle.None, .BackColor = Theme.Card,
+            Dim about As New TextBox With {.Multiline = True, .ReadOnly = True, .ScrollBars = ScrollBars.Vertical, .WordWrap = True, .BorderStyle = BorderStyle.None, .BackColor = Theme.Card,
                                            .ForeColor = Theme.TextDark, .Font = Theme.FontBase, .Text = LegalTexts.About, .TabStop = False,
                                            .Location = New Point(24, 136), .Size = New Size(400, 190)}
 
