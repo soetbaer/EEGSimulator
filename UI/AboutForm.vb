@@ -197,11 +197,14 @@ Namespace UI
                                         .AutoSize = True, .Location = New Point(20, 18)}
             Dim subh As New Label With {.Text = $"Installiert ist Version {AppInfo.VersionText}.", .ForeColor = Theme.TextMuted,
                                         .AutoSize = True, .Location = New Point(22, 54)}
-            Dim notes As New TextBox With {.Multiline = True, .ReadOnly = True, .ScrollBars = ScrollBars.Vertical, .Location = New Point(22, 82),
-                                           .Size = New Size(556, 220), .BackColor = Theme.LabelColumn, .ForeColor = Theme.TextDark,
-                                           .BorderStyle = BorderStyle.FixedSingle, .TabStop = False,
-                                           .Text = If(String.IsNullOrWhiteSpace(info.Notes), "Was sich geändert hat, steht auf der Release-Seite (Schaltfläche »Release-Seite öffnen«).",
-                                                      info.Notes.Replace(vbCrLf, vbLf).Replace(vbLf, Environment.NewLine))}
+            Dim notes As New RichTextBox With {.ReadOnly = True, .ScrollBars = RichTextBoxScrollBars.Vertical, .Location = New Point(22, 82),
+                                               .Size = New Size(556, 220), .BackColor = Theme.LabelColumn, .ForeColor = Theme.TextDark,
+                                               .BorderStyle = BorderStyle.FixedSingle, .TabStop = False, .DetectUrls = False}
+            If info.NoteLines IsNot Nothing AndAlso info.NoteLines.Count > 0 Then
+                FillNotes(notes, info.NoteLines)
+            Else
+                notes.Text = "Die Versionshinweise konnten nicht geladen werden. Was sich geändert hat, steht auf der Release-Seite (Schaltfläche »Release-Seite öffnen«)."
+            End If
 
             _lblState.Location = New Point(22, 310)
             _lblState.Size = New Size(556, 40)
@@ -236,6 +239,54 @@ Namespace UI
             Controls.AddRange({head, subh, notes, _lblState, _bar, _btnInstall, _btnPage, _btnLater})
             ResumeLayout(False)
             PerformLayout()
+        End Sub
+
+        ''' <summary>Schreibt die Versionshinweise formatiert: Überschriften fett, Aufzählungen mit Punkt und hängendem Einzug.</summary>
+        Private Shared Sub FillNotes(box As RichTextBox, lines As List(Of NoteLine))
+            Dim bold As New Font(Theme.FontBase, FontStyle.Bold)
+            Dim first = True
+            For Each l In lines
+                Dim isHead = l.Kind = NoteKind.Version OrElse l.Kind = NoteKind.Heading
+                If Not first Then
+                    box.AppendText(vbLf)
+                    If isHead Then
+                        ' Leerzeile vor Überschriften, ohne Aufzählungspunkt
+                        box.SelectionStart = box.TextLength
+                        box.SelectionBullet = False
+                        box.SelectionIndent = 0
+                        box.SelectionHangingIndent = 0
+                        box.AppendText(vbLf)
+                    End If
+                End If
+                first = False
+                box.SelectionStart = box.TextLength
+                box.SelectionLength = 0
+                box.SelectionBullet = l.Kind = NoteKind.Bullet
+                box.SelectionIndent = If(l.Kind = NoteKind.Bullet, 6, 0)
+                box.SelectionHangingIndent = If(l.Kind = NoteKind.Bullet, 14, 0)
+                Select Case l.Kind
+                    Case NoteKind.Version
+                        AppendRun(box, l.PlainText, Theme.FontHeading, Theme.Accent)
+                    Case NoteKind.Heading
+                        AppendRun(box, l.PlainText, bold, Theme.TextDark)
+                    Case Else
+                        ' **fett** markierte Stellen fett schreiben
+                        Dim parts = l.Text.Split({"**"}, StringSplitOptions.None)
+                        For i = 0 To parts.Length - 1
+                            If parts(i).Length > 0 Then AppendRun(box, parts(i), If(i Mod 2 = 1, bold, Theme.FontBase), Theme.TextDark)
+                        Next
+                End Select
+            Next
+            box.SelectionStart = 0
+            box.SelectionLength = 0
+        End Sub
+
+        Private Shared Sub AppendRun(box As RichTextBox, text As String, font As Font, color As Color)
+            box.SelectionStart = box.TextLength
+            box.SelectionLength = 0
+            box.SelectionFont = font
+            box.SelectionColor = color
+            box.AppendText(text)
         End Sub
 
         Private Async Sub OnInstall(sender As Object, e As EventArgs)

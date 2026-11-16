@@ -5,6 +5,7 @@ Imports System.IO
 Imports System.Net.Http
 Imports System.Reflection
 Imports System.Security.Cryptography
+Imports System.Text.Json
 
 Namespace Services
 
@@ -35,11 +36,41 @@ Namespace Services
         End Property
     End Module
 
+    ''' <summary>Art einer Zeile in den Versionshinweisen.</summary>
+    Public Enum NoteKind
+        ''' <summary>Überschrift einer Version (nur wenn mehrere Versionen übersprungen wurden).</summary>
+        Version
+        ''' <summary>Abschnitt wie »Neu«, »Geändert«, »Behoben«.</summary>
+        Heading
+        Bullet
+        Text
+    End Enum
+
+    ''' <summary>Eine Zeile der Versionshinweise. Text kann **fett** markierte Stellen enthalten.</summary>
+    Public NotInheritable Class NoteLine
+        Public Property Kind As NoteKind
+        Public Property Text As String = ""
+
+        Public Sub New(kind As NoteKind, text As String)
+            Me.Kind = kind
+            Me.Text = text
+        End Sub
+
+        ''' <summary>Text ohne Fett-Markierung.</summary>
+        Public ReadOnly Property PlainText As String
+            Get
+                Return Text.Replace("**", "")
+            End Get
+        End Property
+    End Class
+
     ''' <summary>Ergebnis einer Update-Prüfung.</summary>
     Public NotInheritable Class UpdateInfo
         Public Property Version As Version
         Public Property TagName As String = ""
         Public Property Notes As String = ""
+        ''' <summary>Versionshinweise aller neuen Versionen (neueste zuerst), leer wenn nicht abrufbar.</summary>
+        Public Property NoteLines As New List(Of NoteLine)
         Public Property PageUrl As String = AppInfo.ReleasesUrl
         ''' <summary>Download-Adresse der EXE oder Nothing, wenn das Release keine EXE enthält.</summary>
         Public Property DownloadUrl As String
@@ -67,6 +98,11 @@ Namespace Services
         ' Nur Downloads aus den Releases dieses Repositorys werden akzeptiert
         Private Const DownloadPrefix As String = AppInfo.RepoUrl & "/releases/download/"
         Private Const ExeAssetName As String = "NeuroSim.exe"
+        ' Versionshinweise (Release-Texte) kommen über die Programmierschnittstelle. Schlägt die
+        ' Abfrage fehl (z. B. Abfragegrenze), zeigt der Dialog nur den Verweis auf die Release-Seite.
+        Private Const ApiReleasesUrl As String = "https://api.github.com/repos/" & AppInfo.RepoOwner & "/" & AppInfo.RepoName & "/releases?per_page=30"
+        ' Abschnitte der Release-Texte, die im Update-Dialog nichts nützen
+        Private Shared ReadOnly SkippedSections As String() = {"Installation", "Hinweis"}
         ''' <summary>Liegt diese Datei neben der EXE, ist die Update-Funktion abgeschaltet.</summary>
         Public Const DisableFileName As String = "NeuroSim.noupdate"
         ''' <summary>Registry-Schlüssel (HKEY_LOCAL_MACHINE) mit dem Wert DisableUpdate = 1.</summary>
@@ -123,6 +159,95 @@ Namespace Services
         End Function
 
         ''' <summary>
+        ''' Zerlegt einen Release-Text (Markdown) in Zeilen für den Update-Dialog.
+        ''' Die Abschnitte »Installation« und »Hinweis« werden weggelassen.
+        ''' </summary>
+        Public Shared Function ParseReleaseBody(body As String) As List(Of NoteLine)
+            Dim result As New List(Of NoteLine)
+            If String.IsNullOrWhiteSpace(body) Then Return result
+            Dim skipping = False
+            For Each raw In body.Replace(vbCrLf, vbLf).Replace(vbCr, vbLf).Split(ControlChars.Lf)
+                Dim line = raw.Trim().Replace("`", "")
+                If line.Length = 0 Then Continue For
+                If line.StartsWith("#") Then
+                    Dim title = line.TrimStart("#"c).Trim().Replace("**", "")
+                    skipping = SkippedSections.Any(Function(x) title.Equals(x, StringComparison.OrdinalIgnoreCase))
+                    If Not skipping AndAlso title.Length > 0 Then result.Add(New NoteLine(NoteKind.Heading, title))
+                    Continue For
+                End If
+                If skipping Then Continue For
+                If line.StartsWith("- ") OrElse line.StartsWith("* ") OrElse line.StartsWith("+ ") Then
+                    result.Add(New NoteLine(NoteKind.Bullet, line.Substring(2).Trim()))
+                Else
+                    result.Add(New NoteLine(NoteKind.Text, line))
+                End If
+            Next
+            Return result
+        End Function
+
+        ''' <summary>
+        ''' Liest die Antwort von GitHub (Liste der Releases als JSON) und sammelt die Versionshinweise
+        ''' aller Versionen nach der installierten bis einschließlich der neuesten, neueste zuerst.
+        ''' Ohne Netzwerk, daher testbar.
+        ''' </summary>
+        Public Shared Function BuildNoteLines(releasesJson As String, current As Version, latest As Version) As List(Of NoteLine)
+            Dim result As New List(Of NoteLine)
+            If String.IsNullOrWhiteSpace(releasesJson) OrElse current Is Nothing OrElse latest Is Nothing Then Return result
+            Dim cur = New Version(current.Major, current.Minor, Math.Max(0, current.Build))
+            Dim found As New List(Of (Version As Version, Lines As List(Of NoteLine)))
+            Try
+                Using doc = JsonDocument.Parse(releasesJson)
+                    If doc.RootElement.ValueKind <> JsonValueKind.Array Then Return result
+                    For Each rel In doc.RootElement.EnumerateArray()
+                        If rel.ValueKind <> JsonValueKind.Object Then Continue For
+                        If IsTrue(rel, "draft") OrElse IsTrue(rel, "prerelease") Then Continue For
+                        Dim v = ParseVersion(GetString(rel, "tag_name"))
+                        If v Is Nothing OrElse v <= cur OrElse v > latest Then Continue For
+                        If found.Any(Function(f) f.Version = v) Then Continue For
+                        Dim lines = ParseReleaseBody(GetString(rel, "body"))
+                        If lines.Count > 0 Then found.Add((v, lines))
+                    Next
+                End Using
+            Catch ex As JsonException
+                Return result
+            End Try
+            found.Sort(Function(a, b) b.Version.CompareTo(a.Version))
+            For Each f In found
+                If found.Count > 1 Then result.Add(New NoteLine(NoteKind.Version, $"Version {f.Version.Major}.{f.Version.Minor}.{Math.Max(0, f.Version.Build)}"))
+                result.AddRange(f.Lines)
+            Next
+            Return result
+        End Function
+
+        ''' <summary>Die Versionshinweise als einfacher Text.</summary>
+        Public Shared Function NotesAsText(lines As IEnumerable(Of NoteLine)) As String
+            Dim sb As New System.Text.StringBuilder()
+            For Each l In lines
+                Select Case l.Kind
+                    Case NoteKind.Version, NoteKind.Heading
+                        If sb.Length > 0 Then sb.AppendLine()
+                        sb.AppendLine(l.PlainText)
+                    Case NoteKind.Bullet
+                        sb.AppendLine("• " & l.PlainText)
+                    Case Else
+                        sb.AppendLine(l.PlainText)
+                End Select
+            Next
+            Return sb.ToString().TrimEnd()
+        End Function
+
+        Private Shared Function GetString(e As JsonElement, name As String) As String
+            Dim p As JsonElement
+            If e.TryGetProperty(name, p) AndAlso p.ValueKind = JsonValueKind.String Then Return p.GetString()
+            Return Nothing
+        End Function
+
+        Private Shared Function IsTrue(e As JsonElement, name As String) As Boolean
+            Dim p As JsonElement
+            Return e.TryGetProperty(name, p) AndAlso p.ValueKind = JsonValueKind.True
+        End Function
+
+        ''' <summary>
         ''' Hat ein Administrator die Update-Funktion abgeschaltet?
         ''' Entweder durch die Datei "NeuroSim.noupdate" neben der EXE oder durch den Registry-Wert
         ''' HKEY_LOCAL_MACHINE\Software\Policies\NeuroSim, DisableUpdate = 1.
@@ -175,6 +300,20 @@ Namespace Services
                 Using client = NewClient(10)
                     Using resp = Await client.GetAsync(info.DownloadUrl & ".sha256")
                         If resp.IsSuccessStatusCode Then info.Sha256 = ParseSha256(Await resp.Content.ReadAsStringAsync())
+                    End Using
+                End Using
+            Catch
+            End Try
+
+            ' Versionshinweise, auch der übersprungenen Versionen. Fehler sind hier unkritisch.
+            Try
+                Using client = NewClient(10)
+                    client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json")
+                    Using resp = Await client.GetAsync(ApiReleasesUrl)
+                        If resp.IsSuccessStatusCode Then
+                            info.NoteLines = BuildNoteLines(Await resp.Content.ReadAsStringAsync(), AppInfo.Version, info.Version)
+                            info.Notes = NotesAsText(info.NoteLines)
+                        End If
                     End Using
                 End Using
             Catch
