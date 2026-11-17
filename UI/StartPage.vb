@@ -28,7 +28,7 @@ Namespace UI
         Private Const Inner As Integer = CardWidth - 2 * PadX
         Private Const Gap As Integer = 16
         ' Text neben einem Schalter beginnt hier (Breite des Schalters + Abstand, siehe ToggleSwitch)
-        Private Const ToggleTextIndent As Integer = 50
+        Private Const ToggleTextIndent As Integer = 52
 
         Private ReadOnly _card As New Panel()
         Private ReadOnly _flow As New FlowLayoutPanel()
@@ -222,14 +222,8 @@ Namespace UI
         End Function
 
         Private Shared Function MakeChoice(text As String, primary As Boolean) As Button
-            Dim back = If(primary, Theme.Accent, Theme.AccentLight)
-            Dim b As New Button With {
-                .Text = text, .FlatStyle = FlatStyle.Flat, .BackColor = back, .ForeColor = If(primary, Color.White, Theme.AccentDark),
-                .Font = Theme.FontHeading, .Cursor = Cursors.Hand, .UseVisualStyleBackColor = False, .TabStop = True}
-            ' Nebenaktion getönt ohne Rahmen, damit beide gleich groß und gleich ruhig wirken
-            b.FlatAppearance.BorderSize = 0
-            b.FlatAppearance.MouseOverBackColor = Theme.Blend(back, If(primary, Color.White, Theme.Accent), 0.15)
-            b.FlatAppearance.MouseDownBackColor = Theme.Blend(back, Color.Black, 0.12)
+            Dim b = If(primary, FlatButton.Primary(text), FlatButton.Secondary(text))
+            b.Font = Theme.FontHeading
             Return b
         End Function
 

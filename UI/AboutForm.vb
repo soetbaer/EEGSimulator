@@ -11,10 +11,13 @@ Namespace UI
     Public Class AboutForm
         Inherits Form
 
-        Private ReadOnly _chkAuto As New CheckBox()
-        Private ReadOnly _chkStart As New CheckBox()
-        Private ReadOnly _btnCheck As New Button()
+        Private ReadOnly _tglAuto As New ToggleSwitch()
+        Private ReadOnly _tglStart As New ToggleSwitch()
+        Private ReadOnly _btnCheck As FlatButton = FlatButton.Secondary("Jetzt nach Updates suchen")
         Private ReadOnly _lblStatus As New Label()
+        Private ReadOnly _pages As New List(Of Panel)
+        Private ReadOnly _tabs As New List(Of FlatButton)
+        Private _pageIndex As Integer
 
         Public Sub New()
             SuspendLayout()
@@ -32,73 +35,128 @@ Namespace UI
             Dim ico = Theme.AppIcon()
             If ico IsNot Nothing Then Icon = ico
 
-            Dim tabs As New TabControl With {.Dock = DockStyle.Fill, .Font = Theme.FontBase, .Padding = New Point(14, 6)}
-            tabs.TabPages.Add(BuildAboutPage())
-            tabs.TabPages.Add(TextPage("Quellen", LegalTexts.Sources))
-            tabs.TabPages.Add(TextPage("Haftungsausschluss", LegalTexts.Disclaimer))
-            tabs.TabPages.Add(TextPage("Lizenz", LegalTexts.LicenseIntro & LegalTexts.LicenseText, monospace:=True))
+            ' Reiter im Stil des Hauptfensters (statt der Windows-Reiter)
+            Dim titles = {"Über", "Quellen", "Haftungsausschluss", "Lizenz"}
+            _pages.Add(BuildAboutPage())
+            _pages.Add(TextPage(LegalTexts.Sources))
+            _pages.Add(TextPage(LegalTexts.Disclaimer))
+            _pages.Add(TextPage(LegalTexts.LicenseIntro & LegalTexts.LicenseText, monospace:=True))
 
-            Dim bottom As New Panel With {.Dock = DockStyle.Bottom, .Height = 56, .BackColor = Theme.Card}
-            Dim btnClose As New Button With {.Text = "Schließen", .Size = New Size(120, 34), .Anchor = AnchorStyles.Right Or AnchorStyles.Bottom,
-                                             .DialogResult = DialogResult.OK, .Font = Theme.FontBase}
-            btnClose.Location = New Point(bottom.Width - btnClose.Width - 16, 11)
+            Dim tabBar As New FlowLayoutPanel With {.Dock = DockStyle.Top, .Height = 52, .FlowDirection = FlowDirection.LeftToRight, .WrapContents = False,
+                                                    .Padding = New Padding(24, 16, 24, 0), .BackColor = Theme.Card}
+            For i = 0 To titles.Length - 1
+                Dim idx = i
+                Dim tb = FlatButton.Secondary(titles(i))
+                tb.Font = Theme.FontSmallBold
+                tb.AutoSize = True
+                tb.AutoSizeMode = AutoSizeMode.GrowOnly
+                tb.MinimumSize = New Size(72, 32)
+                tb.Height = 32
+                tb.Padding = New Padding(10, 0, 10, 0)
+                tb.Margin = New Padding(0)
+                tb.AccessibleRole = AccessibleRole.PageTab
+                AddHandler tb.Click, Sub() ShowPage(idx)
+                _tabs.Add(tb)
+                tabBar.Controls.Add(tb)
+            Next
+            Dim tabLine As New Panel With {.Dock = DockStyle.Top, .Height = 1, .BackColor = Theme.Border}
+
+            Dim bottom As New Panel With {.Dock = DockStyle.Bottom, .Height = 64, .BackColor = Theme.Card}
+            Dim bottomLine As New Panel With {.Dock = DockStyle.Top, .Height = 1, .BackColor = Theme.Border}
+            Dim btnClose = FlatButton.Primary("Schließen")
+            btnClose.Size = New Size(120, 36)
+            btnClose.Anchor = AnchorStyles.Right Or AnchorStyles.Top
+            btnClose.DialogResult = DialogResult.OK
+            btnClose.Location = New Point(bottom.Width - btnClose.Width - 24, 14)
             bottom.Controls.Add(btnClose)
+            bottom.Controls.Add(bottomLine)
             AcceptButton = btnClose
             CancelButton = btnClose
 
-            Dim host As New Panel With {.Dock = DockStyle.Fill, .Padding = New Padding(12, 12, 12, 0), .BackColor = Theme.Card}
-            host.Controls.Add(tabs)
+            Dim host As New Panel With {.Dock = DockStyle.Fill, .BackColor = Theme.Card}
+            For Each pg In _pages
+                pg.Dock = DockStyle.Fill
+                host.Controls.Add(pg)
+            Next
             Controls.Add(host)
+            Controls.Add(tabLine)
+            Controls.Add(tabBar)
             Controls.Add(bottom)
             host.BringToFront()
+            ShowPage(0)
             ResumeLayout(False)
             PerformLayout()
         End Sub
 
-        Private Function BuildAboutPage() As TabPage
-            Dim page As New TabPage("Über") With {.BackColor = Theme.Card, .Padding = New Padding(18)}
+        Private Sub ShowPage(index As Integer)
+            _pageIndex = index
+            For i = 0 To _pages.Count - 1
+                Dim sel = (i = index)
+                _pages(i).Visible = sel
+                _tabs(i).SetColors(If(sel, Theme.Accent, Theme.AccentLight), If(sel, Color.White, Theme.AccentDark))
+                _tabs(i).AccessibleDescription = If(sel, "ausgewählt", "")
+            Next
+        End Sub
 
-            Dim logo As New LogoMark With {.BackColor = Theme.Card, .Size = New Size(96, 96), .Location = New Point(22, 22)}
-            Dim name As New Label With {.Text = AppInfo.Name, .Font = New Font("Segoe UI Semibold", 24.0F), .ForeColor = Theme.TextDark,
-                                        .AutoSize = True, .Location = New Point(134, 20)}
+        ''' <summary>Strg+Tab / Strg+Umschalt+Tab wechseln die Reiter wie bei Windows-Reitern.</summary>
+        Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
+            If keyData = (Keys.Control Or Keys.Tab) Then
+                ShowPage((_pageIndex + 1) Mod _pages.Count)
+                Return True
+            End If
+            If keyData = (Keys.Control Or Keys.Shift Or Keys.Tab) Then
+                ShowPage((_pageIndex + _pages.Count - 1) Mod _pages.Count)
+                Return True
+            End If
+            Return MyBase.ProcessCmdKey(msg, keyData)
+        End Function
+
+        Private Function BuildAboutPage() As Panel
+            Dim page As New Panel With {.BackColor = Theme.Card, .AutoScroll = True}
+
+            ' gemeinsame linke Kante für alle Inhalte: 24 px
+            Dim logo As New LogoMark With {.BackColor = Theme.Card, .Size = New Size(88, 88), .Location = New Point(24, 24)}
+            Dim name As New Label With {.Text = AppInfo.Name, .Font = New Font("Segoe UI Semibold", 22.0F), .ForeColor = Theme.TextDark,
+                                        .AutoSize = True, .Location = New Point(128, 22)}
             Dim tag As New Label With {.Text = AppInfo.Tagline, .Font = Theme.FontBase, .ForeColor = Theme.TextMuted,
-                                       .AutoSize = True, .Location = New Point(138, 66)}
+                                       .AutoSize = True, .Location = New Point(131, 64)}
             Dim ver As New Label With {.Text = $"Version {AppInfo.VersionText}", .Font = Theme.FontBold, .ForeColor = Theme.TextDark,
-                                       .AutoSize = True, .Location = New Point(138, 92)}
+                                       .AutoSize = True, .Location = New Point(131, 88)}
 
             Dim about As New TextBox With {.Multiline = True, .ReadOnly = True, .ScrollBars = ScrollBars.Vertical, .WordWrap = True, .BorderStyle = BorderStyle.None, .BackColor = Theme.Card,
                                            .ForeColor = Theme.TextDark, .Font = Theme.FontBase, .Text = LegalTexts.About, .TabStop = False,
-                                           .Location = New Point(24, 136), .Size = New Size(400, 190)}
+                                           .Location = New Point(24, 128), .Size = New Size(400, 184)}
 
-            Dim link As New LinkLabel With {.Text = "Quellcode und neue Versionen auf GitHub öffnen", .AutoSize = True, .Location = New Point(22, 330),
-                                            .LinkColor = Theme.AccentDark, .Font = Theme.FontBase}
+            Dim link As New LinkLabel With {.Text = "Quellcode und neue Versionen auf GitHub öffnen", .AutoSize = True, .Location = New Point(22, 316),
+                                            .LinkColor = Theme.AccentDark, .ActiveLinkColor = Theme.Accent, .Font = Theme.FontBase,
+                                            .LinkBehavior = LinkBehavior.HoverUnderline}
             AddHandler link.LinkClicked, Sub() OpenUrl(AppInfo.RepoUrl)
 
             ' ---- Einstellungen: Startseite und Updates ----
-            Dim line As New Panel With {.Location = New Point(24, 368), .Size = New Size(400, 1), .BackColor = Theme.Border}
-            Dim upd As New Label With {.Text = "Einstellungen", .Font = Theme.FontHeading, .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(20, 380)}
+            Dim line As New Panel With {.Location = New Point(24, 352), .Size = New Size(400, 1), .BackColor = Theme.Border}
+            Dim upd As New Label With {.Text = "Einstellungen", .Font = Theme.FontHeading, .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(22, 364)}
 
-            _chkStart.Text = "Beim Start die Startseite anzeigen (sonst öffnet NeuroSim direkt Lektion 1)"
-            _chkStart.AutoSize = True
-            _chkStart.Location = New Point(24, 414)
-            _chkStart.Checked = AppSettings.ShowStartPage
-            AddHandler _chkStart.CheckedChanged, Sub() AppSettings.ShowStartPage = _chkStart.Checked
+            ' Schalter wie auf der Startseite und im Hauptfenster
+            _tglStart.Text = "Startseite beim Start anzeigen"
+            _tglStart.Location = New Point(20, 396)
+            _tglStart.Size = New Size(400, 32)
+            _tglStart.Checked = AppSettings.ShowStartPage
+            AddHandler _tglStart.CheckedChanged, Sub() AppSettings.ShowStartPage = _tglStart.Checked
 
-            _chkAuto.Text = "Beim Start automatisch nach Updates suchen"
-            _chkAuto.AutoSize = True
-            _chkAuto.Location = New Point(24, 442)
+            _tglAuto.Text = "Beim Start nach Updates suchen"
+            _tglAuto.Location = New Point(20, 430)
+            _tglAuto.Size = New Size(400, 32)
             Dim locked = Updater.DisabledByAdministrator
-            _chkAuto.Checked = AppSettings.AutoUpdateCheck AndAlso Not locked
-            _chkAuto.Enabled = Not locked
-            AddHandler _chkAuto.CheckedChanged, Sub() AppSettings.AutoUpdateCheck = _chkAuto.Checked
+            _tglAuto.Checked = AppSettings.AutoUpdateCheck AndAlso Not locked
+            _tglAuto.Enabled = Not locked
+            AddHandler _tglAuto.CheckedChanged, Sub() AppSettings.AutoUpdateCheck = _tglAuto.Checked
 
-            _btnCheck.Text = "Jetzt nach Updates suchen"
-            _btnCheck.Size = New Size(220, 34)
-            _btnCheck.Location = New Point(24, 476)
+            _btnCheck.Size = New Size(220, 36)
+            _btnCheck.Location = New Point(24, 474)
             AddHandler _btnCheck.Click, AddressOf OnCheckClicked
 
             _lblStatus.AutoSize = False
-            _lblStatus.Location = New Point(256, 476)
+            _lblStatus.Location = New Point(260, 470)
             _lblStatus.Size = New Size(300, 44)
             _lblStatus.TextAlign = ContentAlignment.MiddleLeft
             _lblStatus.ForeColor = Theme.TextMuted
@@ -106,26 +164,30 @@ Namespace UI
             _lblStatus.Text = If(locked, "Die Update-Funktion wurde vom Administrator abgeschaltet.",
                                  "Bei der Suche wird nur die neueste Versionsnummer bei GitHub abgefragt.")
 
-            ' Breiten an die Seite anpassen (TabPages bekommen ihre Größe erst beim Anzeigen)
+            ' Breiten an die Seite anpassen
             Dim fit = Sub()
                           Dim w = Math.Max(200, page.ClientSize.Width - about.Left * 2)
                           about.Width = w
                           line.Width = w
+                          _tglStart.Width = w
+                          _tglAuto.Width = w
                           _lblStatus.Width = Math.Max(100, page.ClientSize.Width - _lblStatus.Left - about.Left)
                       End Sub
             AddHandler page.Resize, Sub() fit()
             AddHandler page.Layout, Sub() fit()
 
-            page.Controls.AddRange({logo, name, tag, ver, about, link, line, upd, _chkStart, _chkAuto, _btnCheck, _lblStatus})
+            page.Controls.AddRange({logo, name, tag, ver, about, link, line, upd, _tglStart, _tglAuto, _btnCheck, _lblStatus})
             Return page
         End Function
 
-        Private Shared Function TextPage(title As String, text As String, Optional monospace As Boolean = False) As TabPage
-            Dim page As New TabPage(title) With {.BackColor = Theme.Card, .Padding = New Padding(10)}
+        Private Shared Function TextPage(text As String, Optional monospace As Boolean = False) As Panel
+            Dim page As New Panel With {.BackColor = Theme.Card, .Padding = New Padding(24, 16, 8, 8)}
             Dim box As New TextBox With {.Multiline = True, .ReadOnly = True, .ScrollBars = ScrollBars.Vertical, .Dock = DockStyle.Fill,
                                          .BorderStyle = BorderStyle.None, .BackColor = Theme.Card, .ForeColor = Theme.TextDark,
                                          .Font = If(monospace, New Font("Consolas", 9.5F), Theme.FontBase), .Text = text, .WordWrap = True}
-            AddHandler page.Enter, Sub() box.Select(0, 0)
+            AddHandler page.VisibleChanged, Sub()
+                                                If page.Visible Then box.Select(0, 0)
+                                            End Sub
             page.Controls.Add(box)
             Return page
         End Function
@@ -170,9 +232,9 @@ Namespace UI
         Inherits Form
 
         Private ReadOnly _info As UpdateInfo
-        Private ReadOnly _btnInstall As New Button()
-        Private ReadOnly _btnPage As New Button()
-        Private ReadOnly _btnLater As New Button()
+        Private ReadOnly _btnInstall As FlatButton = FlatButton.Primary("Jetzt aktualisieren")
+        Private ReadOnly _btnPage As FlatButton = FlatButton.Secondary("Release-Seite öffnen")
+        Private ReadOnly _btnLater As FlatButton = FlatButton.Secondary("Später")
         Private ReadOnly _bar As New ProgressBar()
         Private ReadOnly _lblState As New Label()
 
@@ -225,18 +287,16 @@ Namespace UI
             _bar.Size = New Size(556, 14)
             _bar.Visible = False
 
-            _btnInstall.Text = "Jetzt aktualisieren"
             _btnInstall.Size = New Size(170, 36)
             _btnInstall.Location = New Point(22, 386)
             _btnInstall.Enabled = canInstall
+            If Not canInstall Then _btnInstall.SetColors(Theme.Border, Theme.TextMuted)
             AddHandler _btnInstall.Click, AddressOf OnInstall
 
-            _btnPage.Text = "Release-Seite öffnen"
             _btnPage.Size = New Size(180, 36)
             _btnPage.Location = New Point(202, 386)
             AddHandler _btnPage.Click, Sub() AboutForm.OpenUrl(_info.PageUrl)
 
-            _btnLater.Text = "Später"
             _btnLater.Size = New Size(110, 36)
             _btnLater.Location = New Point(468, 386)
             _btnLater.DialogResult = DialogResult.Cancel

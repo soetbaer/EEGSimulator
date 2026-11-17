@@ -57,7 +57,7 @@ Namespace Training
 
             ' ---------- LowCut ----------
             If s.LowCutTc <= 0 Then
-                list.Add(InfoBlock.Para("LowCut (FU) ist AUS: Auch extrem langsame Schwankungen werden voll angezeigt."))
+                list.Add(InfoBlock.Para("LowCut (FU) ist **aus**: Auch extrem langsame Schwankungen werden voll angezeigt."))
                 If has(SignalPart.Sweat) Then
                     list.Add(InfoBlock.Warning("Ohne LowCut wandert die Grundlinie durch das Schwitzartefakt weit nach oben und unten – die Kurven laufen ineinander."))
                 End If
@@ -80,7 +80,7 @@ Namespace Training
 
             ' ---------- HiCut ----------
             If s.HighCutHz <= 0 Then
-                list.Add(InfoBlock.Para("HiCut (FO) ist AUS: Auch sehr schnelle Anteile werden voll angezeigt."))
+                list.Add(InfoBlock.Para("HiCut (FO) ist **aus**: Auch sehr schnelle Anteile werden voll angezeigt."))
                 If has(SignalPart.Emg) Then list.Add(InfoBlock.Tip("Muskelartefakte sind jetzt ungefiltert in voller Stärke sichtbar."))
             Else
                 list.Add(InfoBlock.Para($"HiCut {Hz(s.HighCutHz)} Hz: Wellen, die schneller sind als etwa {Hz(s.HighCutHz)} Wellen pro Sekunde, werden abgeschwächt – je schneller, desto stärker."))
@@ -148,7 +148,7 @@ Namespace Training
                 ElseIf s.Notch Then
                     list.Add(InfoBlock.Good($"Der Netzbrumm (am stärksten in {chName}) ist herausgefiltert. Die Ursache bleibt aber bestehen: {cause}."))
                 Else
-                    list.Add(InfoBlock.Tip($"Netzbrumm sichtbar (dicke, 'pelzige' Kurve), am stärksten in {chName}: {cause}. Erst die Elektrode verbessern, dann ggf. den 50-Hz-Filter einschalten."))
+                    list.Add(InfoBlock.Tip($"Netzbrumm sichtbar (dicke, »pelzige« Kurve), am stärksten in {chName}: {cause}. Erst die Elektrode verbessern, dann ggf. den 50-Hz-Filter einschalten."))
                 End If
             End If
 
@@ -239,7 +239,7 @@ Namespace Training
                     End If
                 Case Montages.Average
                     If has(SignalPart.Blinks) Then
-                        list.Add(InfoBlock.Warning("Durchschnittsreferenz: Das große Augenblinzeln steckt über die frontalen Elektroden im Durchschnitt und erscheint dadurch umgekehrt in ALLEN Kanälen, sogar okzipital."))
+                        list.Add(InfoBlock.Warning("Durchschnittsreferenz: Das große Augenblinzeln steckt über die frontalen Elektroden im Durchschnitt und erscheint dadurch umgekehrt in **allen** Kanälen, sogar okzipital."))
                     End If
                     If focus Then
                         list.Add(InfoBlock.Tip("Durchschnittsreferenz: Der Herd ist in C3-AV am größten. Weil er den Durchschnitt mitverschiebt, erscheint in den Kanälen abseits des Herdes ein kleiner Ausschlag in Gegenrichtung."))
