@@ -27,7 +27,7 @@ Weil die EXE nicht signiert ist, zeigt Windows beim ersten Start eventuell den H
 
 ## Bedienung
 
-- Beim Start zeigt NeuroSim eine **Startseite**: kurz, worum es geht und was die Anwendung kann, dazu die Wahl zwischen „Geführte Lektionen“ und „Freier Simulator“. Mit dem Haken „Startseite beim nächsten Start nicht mehr anzeigen“ öffnet NeuroSim künftig direkt Lektion 1. Wieder einschalten lässt sich die Startseite im Info-Dialog (`F1`).
+- Beim Start zeigt NeuroSim eine **Startseite**: kurz, worum es geht und was die Anwendung kann, dazu die Wahl zwischen „Geführte Lektionen“ und „Freier Simulator“. Ist der Schalter „Startseite beim Start anzeigen“ aus, öffnet NeuroSim künftig direkt Lektion 1. Wieder einschalten lässt sich die Startseite im Info-Dialog (`F1`).
 - **Geführte Lektionen** (23 Lektionen in fünf Kapiteln: Grundlagen, Verstärker und Impedanz, Verschaltungen, Filter, Darstellung und Praxis): links lesen, rechts ausprobieren. Mit „Weiter“ geht es zur nächsten Lektion. „Lektion zurücksetzen“ stellt den Ausgangszustand wieder her.
 - **Freier Simulator**: Verschaltung, alle Regler und Signal-Bausteine sind frei wählbar.
 - Ein Klick auf einen **Kanalnamen** wählt den Kanal für die Frequenz-Ansicht und markiert seine Eingänge im Kopfschema der Verschaltung.
