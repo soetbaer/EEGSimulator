@@ -26,6 +26,7 @@ Namespace UI
         Private _lessonIndex As Integer
         Private _lessonMode As Boolean = True
         Private _suspend As Boolean
+        Private _start As StartPage
 
         ' ---------- Steuerelemente ----------
         Private ReadOnly _eeg As New EegView()
@@ -113,6 +114,15 @@ Namespace UI
             AddHandler _eeg.EcgAmplitudeClicked, AddressOf OnEcgAmplitudeClicked
 
             SetMode(lessonMode:=True)
+
+            ' Startseite über dem ganzen Fenster, bis ein Modus gewählt ist (abschaltbar)
+            If AppSettings.ShowStartPage Then
+                _start = New StartPage(_lessons.Count, _lessons.Select(Function(l) l.Chapter).Distinct().Count()) With {
+                    .Location = Point.Empty, .Size = ClientSize}
+                AddHandler _start.ModeChosen, AddressOf OnStartModeChosen
+                Controls.Add(_start)
+                _start.BringToFront()
+            End If
         End Sub
 
         ' =====================================================================
@@ -827,20 +837,34 @@ Namespace UI
             End Using
         End Sub
 
-        ''' <summary>Nach dem ersten Anzeigen: Reste eines Updates wegräumen und still nach einer neuen Version suchen.</summary>
-        Protected Overrides Async Sub OnShown(e As EventArgs)
+        ''' <summary>Nach dem ersten Anzeigen: Reste eines Updates wegräumen, dann Startseite zeigen oder still nach einer neuen Version suchen.</summary>
+        Protected Overrides Sub OnShown(e As EventArgs)
             MyBase.OnShown(e)
             Updater.CleanupOldVersion()
-            If Updater.DisabledByAdministrator Then Return
-            If Not AppSettings.AutoUpdateAsked Then
-                ' einmalige Frage beim ersten Start: ohne Zustimmung keine Anfrage an GitHub
-                Dim answer = MessageBox.Show(Me,
-                    "Darf NeuroSim beim Start nach neuen Versionen suchen?" & vbCrLf & vbCrLf &
-                    "Dazu wird höchstens einmal am Tag eine Anfrage an GitHub gesendet. GitHub sieht dabei technisch bedingt die IP-Adresse dieses Rechners. Nutzungsdaten werden nicht übertragen." & vbCrLf & vbCrLf &
-                    "Sie können die Auswahl jederzeit im Info-Dialog (F1) ändern.",
-                    $"{AppInfo.Name} – Updates", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2)
-                AppSettings.AutoUpdateCheck = (answer = DialogResult.Yes)
+            If _start IsNot Nothing Then
+                ' Die Update-Suche wartet, bis auf der Startseite ein Modus gewählt ist:
+                ' dort wird sie erst ein- oder ausgeschaltet.
+                _start.FocusDefault()
+                Return
             End If
+            CheckForUpdatesOnStart()
+        End Sub
+
+        ''' <summary>Schließt die Startseite und öffnet den gewählten Modus.</summary>
+        Private Sub OnStartModeChosen(lessonMode As Boolean)
+            If _start Is Nothing Then Return
+            Dim page = _start
+            _start = Nothing
+            Controls.Remove(page)
+            page.Dispose()
+            SetMode(lessonMode)
+            CheckForUpdatesOnStart()
+        End Sub
+
+        ''' <summary>Sucht still nach einer neuen Version, wenn der Benutzer das eingeschaltet hat (höchstens einmal am Tag).</summary>
+        Private Async Sub CheckForUpdatesOnStart()
+            ' ohne Zustimmung (Startseite oder Info-Dialog) keine Anfrage an GitHub
+            If Updater.DisabledByAdministrator Then Return
             If Not AppSettings.AutoUpdateCheck OrElse Not AppSettings.UpdateCheckDueToday Then Return
             Try
                 Dim info = Await Updater.CheckAsync()
@@ -856,6 +880,8 @@ Namespace UI
                 ShowInfo()
                 Return True
             End If
+            ' Auf der Startseite wirken die Tastenkürzel des Simulators nicht
+            If _start IsNot Nothing Then Return MyBase.ProcessCmdKey(msg, keyData)
             ' P = Abspielen/Anhalten, Pfeiltasten und Bild auf/ab = blättern (wenn kein Eingabefeld aktiv ist)
             If TypeOf ActiveControl Is ComboBox OrElse TypeOf ActiveControl Is ImpedanceView Then Return MyBase.ProcessCmdKey(msg, keyData)
             ' + und − ändern die Amplitude (auch mit Umschalttaste, z. B. + auf englischer Tastatur)

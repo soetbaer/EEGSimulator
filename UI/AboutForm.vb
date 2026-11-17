@@ -12,6 +12,7 @@ Namespace UI
         Inherits Form
 
         Private ReadOnly _chkAuto As New CheckBox()
+        Private ReadOnly _chkStart As New CheckBox()
         Private ReadOnly _btnCheck As New Button()
         Private ReadOnly _lblStatus As New Label()
 
@@ -22,8 +23,8 @@ Namespace UI
             Text = $"Info über {AppInfo.Name}"
             Font = Theme.FontBase
             BackColor = Theme.Card
-            ClientSize = New Size(760, 620)
-            MinimumSize = New Size(640, 520)
+            ClientSize = New Size(760, 650)
+            MinimumSize = New Size(640, 550)
             StartPosition = FormStartPosition.CenterParent
             ShowInTaskbar = False
             MinimizeBox = False
@@ -73,13 +74,19 @@ Namespace UI
                                             .LinkColor = Theme.AccentDark, .Font = Theme.FontBase}
             AddHandler link.LinkClicked, Sub() OpenUrl(AppInfo.RepoUrl)
 
-            ' ---- Updates ----
+            ' ---- Einstellungen: Startseite und Updates ----
             Dim line As New Panel With {.Location = New Point(24, 368), .Size = New Size(400, 1), .BackColor = Theme.Border}
-            Dim upd As New Label With {.Text = "Updates", .Font = Theme.FontHeading, .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(20, 380)}
+            Dim upd As New Label With {.Text = "Einstellungen", .Font = Theme.FontHeading, .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(20, 380)}
+
+            _chkStart.Text = "Beim Start die Startseite anzeigen (sonst öffnet NeuroSim direkt Lektion 1)"
+            _chkStart.AutoSize = True
+            _chkStart.Location = New Point(24, 414)
+            _chkStart.Checked = AppSettings.ShowStartPage
+            AddHandler _chkStart.CheckedChanged, Sub() AppSettings.ShowStartPage = _chkStart.Checked
 
             _chkAuto.Text = "Beim Start automatisch nach Updates suchen"
             _chkAuto.AutoSize = True
-            _chkAuto.Location = New Point(24, 414)
+            _chkAuto.Location = New Point(24, 442)
             Dim locked = Updater.DisabledByAdministrator
             _chkAuto.Checked = AppSettings.AutoUpdateCheck AndAlso Not locked
             _chkAuto.Enabled = Not locked
@@ -87,11 +94,11 @@ Namespace UI
 
             _btnCheck.Text = "Jetzt nach Updates suchen"
             _btnCheck.Size = New Size(220, 34)
-            _btnCheck.Location = New Point(24, 446)
+            _btnCheck.Location = New Point(24, 476)
             AddHandler _btnCheck.Click, AddressOf OnCheckClicked
 
             _lblStatus.AutoSize = False
-            _lblStatus.Location = New Point(256, 446)
+            _lblStatus.Location = New Point(256, 476)
             _lblStatus.Size = New Size(300, 44)
             _lblStatus.TextAlign = ContentAlignment.MiddleLeft
             _lblStatus.ForeColor = Theme.TextMuted
@@ -109,7 +116,7 @@ Namespace UI
             AddHandler page.Resize, Sub() fit()
             AddHandler page.Layout, Sub() fit()
 
-            page.Controls.AddRange({logo, name, tag, ver, about, link, line, upd, _chkAuto, _btnCheck, _lblStatus})
+            page.Controls.AddRange({logo, name, tag, ver, about, link, line, upd, _chkStart, _chkAuto, _btnCheck, _lblStatus})
             Return page
         End Function
 

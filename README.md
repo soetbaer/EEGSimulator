@@ -27,6 +27,7 @@ Weil die EXE nicht signiert ist, zeigt Windows beim ersten Start eventuell den H
 
 ## Bedienung
 
+- Beim Start zeigt NeuroSim eine **Startseite**: kurz, worum es geht und was die Anwendung kann, dazu die Wahl zwischen „Geführte Lektionen“ und „Freier Simulator“. Mit dem Haken „Startseite beim nächsten Start nicht mehr anzeigen“ öffnet NeuroSim künftig direkt Lektion 1. Wieder einschalten lässt sich die Startseite im Info-Dialog (`F1`).
 - **Geführte Lektionen** (23 Lektionen in fünf Kapiteln: Grundlagen, Verstärker und Impedanz, Verschaltungen, Filter, Darstellung und Praxis): links lesen, rechts ausprobieren. Mit „Weiter“ geht es zur nächsten Lektion. „Lektion zurücksetzen“ stellt den Ausgangszustand wieder her.
 - **Freier Simulator**: Verschaltung, alle Regler und Signal-Bausteine sind frei wählbar.
 - Ein Klick auf einen **Kanalnamen** wählt den Kanal für die Frequenz-Ansicht und markiert seine Eingänge im Kopfschema der Verschaltung.
@@ -42,7 +43,7 @@ Weil die EXE nicht signiert ist, zeigt Windows beim ersten Start eventuell den H
 ## Info, Lizenz und Updates
 
 - Die Schaltfläche **Info** (oder `F1`) zeigt Entwickler, Quellen, Haftungsausschluss und Lizenz.
-- **Updates:** Beim ersten Start fragt NeuroSim einmal, ob es beim Start nach neuen Versionen suchen darf. Ohne Zustimmung wird nichts abgefragt. Mit Zustimmung fragt NeuroSim höchstens einmal am Tag die neueste Versionsnummer bei GitHub ab und bietet eine neue Version zum Installieren an. Die Auswahl lässt sich im Info-Dialog ändern; dort gibt es auch „Jetzt nach Updates suchen“. Übertragen werden keine Nutzungsdaten; GitHub sieht technisch bedingt die IP-Adresse.
+- **Updates:** Ob NeuroSim beim Start nach neuen Versionen sucht, stellt man auf der Startseite ein (Standard: aus). Ohne Zustimmung wird nichts abgefragt. Mit Zustimmung fragt NeuroSim höchstens einmal am Tag die neueste Versionsnummer bei GitHub ab und bietet eine neue Version zum Installieren an. Die Auswahl lässt sich im Info-Dialog ändern; dort gibt es auch „Jetzt nach Updates suchen“. Übertragen werden keine Nutzungsdaten; GitHub sieht technisch bedingt die IP-Adresse.
 - Beim Aktualisieren lädt NeuroSim die `NeuroSim.exe` aus dem Release, prüft sie (Größe, Dateityp und, falls dem Release eine `NeuroSim.exe.sha256` beiliegt, die SHA-256-Prüfsumme) und ersetzt sich selbst. Liegt die EXE in einem schreibgeschützten Ordner, verweist der Dialog auf die Release-Seite.
 - **Für Administratoren:** Die Update-Funktion (Suche und Selbst-Update) lässt sich ganz abschalten, entweder durch eine leere Datei `NeuroSim.noupdate` im Ordner der EXE oder durch den Registry-Wert `DisableUpdate` = `1` unter `HKEY_LOCAL_MACHINE\Software\Policies\NeuroSim`. Der Info-Dialog zeigt dann „vom Administrator abgeschaltet“.
 

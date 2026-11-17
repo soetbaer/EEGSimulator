@@ -29,12 +29,12 @@ This program will not transfer any information to other networked systems unless
 
 The only network access is the update check:
 
-- NeuroSim asks once, on first start, whether it may look for new versions. Without consent nothing is sent.
+- The automatic update check is off by default. The user can switch it on on the start page or in the info dialog. Without consent nothing is sent.
 - With consent, or when the user clicks "Jetzt nach Updates suchen", NeuroSim requests the latest version number from GitHub (`https://github.com/soetbaer/EEGSimulator/releases/latest`), automatically at most once per day. GitHub sees the IP address of the computer; no usage data and no personal data are sent.
 - If the user chooses to install an update, NeuroSim downloads `NeuroSim.exe` from the releases of this repository.
 - Administrators can switch off the update function completely (see [README](README.md), section "Info, Lizenz und Updates").
 
-NeuroSim processes no patient data. The only data stored locally are the update setting and the date of the last update check (`%AppData%\NeuroSim\settings.txt`).
+NeuroSim processes no patient data. The only data stored locally are the update setting, whether the start page is shown, and the date of the last update check (`%AppData%\NeuroSim\settings.txt`).
 
 ## Reporting problems
 
