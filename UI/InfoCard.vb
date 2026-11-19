@@ -125,6 +125,71 @@ Namespace UI
             LayoutBlocks(e.Graphics, True)
         End Sub
 
+        Private Shared ReadOnly BoldFonts As New Dictionary(Of Font, Font)
+        Private Const RunFlags As TextFormatFlags = TextFormatFlags.NoPadding Or TextFormatFlags.SingleLine Or TextFormatFlags.NoPrefix
+
+        Private Shared Function BoldOf(f As Font) As Font
+            Dim b As Font = Nothing
+            If Not BoldFonts.TryGetValue(f, b) Then
+                b = New Font(f, FontStyle.Bold)
+                BoldFonts(f) = b
+            End If
+            Return b
+        End Function
+
+        ''' <summary>
+        ''' Misst (und zeichnet optional) einen umbrechenden Text. Mit **…** markierte Stellen werden fett
+        ''' geschrieben – zur Betonung statt Großbuchstaben. Gibt die Höhe zurück.
+        ''' </summary>
+        Private Shared Function RichText(g As Graphics, text As String, font As Font, x As Integer, y As Integer, width As Integer,
+                                         color As Color, draw As Boolean) As Integer
+            If String.IsNullOrEmpty(text) Then Return 0
+            If Not text.Contains("**") Then
+                Dim h0 = Measure(g, text, font, width)
+                If draw Then TextRenderer.DrawText(g, text, font, New Rectangle(x, y, width, h0), color, Flags)
+                Return h0
+            End If
+            Dim bold = BoldOf(font)
+            ' Wörter aus Abschnitten (normal/fett); ein Wort kann den Stil wechseln, z. B. **nicht**:
+            Dim words As New List(Of List(Of (Text As String, Bold As Boolean)))
+            Dim word As New List(Of (Text As String, Bold As Boolean))
+            Dim run As New System.Text.StringBuilder()
+            Dim parts = text.Split({"**"}, StringSplitOptions.None)
+            For pi = 0 To parts.Length - 1
+                Dim isBold = (pi Mod 2 = 1)
+                For Each ch In parts(pi)
+                    If ch = " "c Then
+                        If run.Length > 0 Then word.Add((run.ToString(), isBold)) : run.Clear()
+                        If word.Count > 0 Then words.Add(word) : word = New List(Of (Text As String, Bold As Boolean))
+                    Else
+                        run.Append(ch)
+                    End If
+                Next
+                If run.Length > 0 Then word.Add((run.ToString(), isBold)) : run.Clear()
+            Next
+            If word.Count > 0 Then words.Add(word)
+
+            Dim lineH = Math.Max(TextRenderer.MeasureText(g, "Ag", font, Size.Empty, RunFlags).Height,
+                                 TextRenderer.MeasureText(g, "Ag", bold, Size.Empty, RunFlags).Height)
+            Dim spaceW = TextRenderer.MeasureText(g, "a a", font, Size.Empty, RunFlags).Width -
+                         TextRenderer.MeasureText(g, "aa", font, Size.Empty, RunFlags).Width
+            Dim cx = 0, line = 0
+            For Each w In words
+                Dim widths = w.Select(Function(r) TextRenderer.MeasureText(g, r.Text, If(r.Bold, bold, font), Size.Empty, RunFlags).Width).ToList()
+                Dim ww = widths.Sum()
+                If cx > 0 AndAlso cx + spaceW + ww > width Then
+                    line += 1 : cx = 0
+                ElseIf cx > 0 Then
+                    cx += spaceW
+                End If
+                For i = 0 To w.Count - 1
+                    If draw Then TextRenderer.DrawText(g, w(i).Text, If(w(i).Bold, bold, font), New Point(x + cx, y + line * lineH), color, RunFlags)
+                    cx += widths(i)
+                Next
+            Next
+            Return (line + 1) * lineH
+        End Function
+
         Private Shared Function Measure(g As Graphics, text As String, font As Font, width As Integer) As Integer
             If String.IsNullOrEmpty(text) Then Return 0
             Return TextRenderer.MeasureText(g, text, font, New Size(Math.Max(10, width), Integer.MaxValue), Flags).Height
@@ -158,20 +223,19 @@ Namespace UI
                         y += h + CInt(6 * sc)
 
                     Case BlockKind.Paragraph
-                        Dim h = Measure(g, b.Text, Theme.FontBase, w)
-                        If draw Then TextRenderer.DrawText(g, b.Text, Theme.FontBase, New Rectangle(pad, y + oy, w, h), Theme.TextDark, Flags)
+                        Dim h = RichText(g, b.Text, Theme.FontBase, pad, y + oy, w, Theme.TextDark, draw)
                         y += h + CInt(10 * sc)
 
                     Case BlockKind.Bullet
                         Dim ind = CInt(18 * sc)
-                        Dim h = Measure(g, b.Text, Theme.FontBase, w - ind)
+                        Dim h = RichText(g, b.Text, Theme.FontBase, pad + ind, y + oy, w - ind, Theme.TextDark, False)
                         If draw Then
                             Dim lineH = TextRenderer.MeasureText(g, "X", Theme.FontBase).Height
                             Dim dd = 6 * sc
                             Using br As New SolidBrush(Theme.Accent)
                                 g.FillEllipse(br, pad + 3 * sc, y + oy + (lineH - dd) / 2, dd, dd)
                             End Using
-                            TextRenderer.DrawText(g, b.Text, Theme.FontBase, New Rectangle(pad + ind, y + oy, w - ind, h), Theme.TextDark, Flags)
+                            RichText(g, b.Text, Theme.FontBase, pad + ind, y + oy, w - ind, Theme.TextDark, True)
                         End If
                         y += h + CInt(6 * sc)
 
@@ -186,7 +250,7 @@ Namespace UI
                         Dim bp = CInt(12 * sc), stripe = CInt(5 * sc)
                         Dim inner = w - 2 * bp - stripe
                         Dim lh = Measure(g, label, Theme.FontBold, inner)
-                        Dim th = Measure(g, b.Text, Theme.FontBase, inner)
+                        Dim th = RichText(g, b.Text, Theme.FontBase, 0, 0, inner, Theme.TextDark, False)
                         Dim bh = bp * 2 + lh + CInt(3 * sc) + th
                         If draw Then
                             Dim r As New RectangleF(pad, y + oy, w, bh)
@@ -201,7 +265,7 @@ Namespace UI
                             End Using
                             Dim tx = pad + stripe + bp
                             TextRenderer.DrawText(g, label, Theme.FontBold, New Rectangle(tx, y + oy + bp, inner, lh), labelCol, Flags)
-                            TextRenderer.DrawText(g, b.Text, Theme.FontBase, New Rectangle(tx, y + oy + bp + lh + CInt(3 * sc), inner, th), Theme.TextDark, Flags)
+                            RichText(g, b.Text, Theme.FontBase, tx, y + oy + bp + lh + CInt(3 * sc), inner, Theme.TextDark, True)
                         End If
                         y += bh + CInt(12 * sc)
 

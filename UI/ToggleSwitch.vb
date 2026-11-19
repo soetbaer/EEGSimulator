@@ -79,7 +79,7 @@ Namespace UI
             g.SmoothingMode = SmoothingMode.AntiAlias
             Dim sc = DeviceDpi / 96.0F
 
-            Dim track As New RectangleF(2 * sc, (Height - 20 * sc) / 2, 38 * sc, 20 * sc)
+            Dim track As New RectangleF(4 * sc, (Height - 20 * sc) / 2, 38 * sc, 20 * sc)
             Dim trackCol = If(_checked, If(Enabled, OnColor, Theme.TrackOff), Theme.TrackOff)
             Using p = Theme.RoundRect(track, 10 * sc), b As New SolidBrush(trackCol)
                 g.FillPath(b, p)
@@ -103,8 +103,12 @@ Namespace UI
             TextRenderer.DrawText(g, Text, Font, r, If(Enabled, ForeColor, Theme.TextMuted),
                                   TextFormatFlags.VerticalCenter Or TextFormatFlags.Left Or TextFormatFlags.EndEllipsis)
 
+            ' deutlicher Fokusrahmen um den Schalter (der gepunktete Windows-Rahmen ist kaum zu sehen)
             If Focused AndAlso ShowFocusCues Then
-                ControlPaint.DrawFocusRectangle(g, New Rectangle(0, 0, Width, Height))
+                Dim ring = RectangleF.Inflate(track, 2.5F * sc, 2.5F * sc)
+                Using p As New Pen(Theme.Accent, 2 * sc), path = Theme.RoundRect(ring, ring.Height / 2)
+                    g.DrawPath(p, path)
+                End Using
             End If
         End Sub
 

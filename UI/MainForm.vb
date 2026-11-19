@@ -26,6 +26,7 @@ Namespace UI
         Private _lessonIndex As Integer
         Private _lessonMode As Boolean = True
         Private _suspend As Boolean
+        Private _start As StartPage
 
         ' ---------- Steuerelemente ----------
         Private ReadOnly _eeg As New EegView()
@@ -37,8 +38,8 @@ Namespace UI
         Private _btnPrev As Button
         Private _btnNext As Button
         Private _btnReset As Button
-        Private _btnModeLessons As Button
-        Private _btnModeFree As Button
+        Private _btnModeLessons As FlatButton
+        Private _btnModeFree As FlatButton
 
         Private ReadOnly _cmbLowCut As New ComboBox()
         Private ReadOnly _cmbHiCut As New ComboBox()
@@ -113,6 +114,15 @@ Namespace UI
             AddHandler _eeg.EcgAmplitudeClicked, AddressOf OnEcgAmplitudeClicked
 
             SetMode(lessonMode:=True)
+
+            ' Startseite über dem ganzen Fenster, bis ein Modus gewählt ist (abschaltbar)
+            If AppSettings.ShowStartPage Then
+                _start = New StartPage(_lessons.Count, _lessons.Select(Function(l) l.Chapter).Distinct().Count()) With {
+                    .Location = Point.Empty, .Size = ClientSize}
+                AddHandler _start.ModeChosen, AddressOf OnStartModeChosen
+                Controls.Add(_start)
+                _start.BringToFront()
+            End If
         End Sub
 
         ' =====================================================================
@@ -125,28 +135,36 @@ Namespace UI
             Dim logo As New LogoMark With {.Size = New Size(44, 64), .Location = New Point(14, 0)}
             Dim title As New Label With {.Text = AppInfo.Name, .Font = Theme.FontAppTitle, .ForeColor = Theme.HeaderText,
                                          .AutoSize = True, .Location = New Point(64, 8)}
-            Dim sub1 As New Label With {.Text = "Der EEG-Simulator: Filter · Impedanzen · Artefakte verstehen",
+            Dim sub1 As New Label With {.Text = AppInfo.Tagline,
                                         .Font = Theme.FontSmall, .ForeColor = Theme.HeaderMuted, .AutoSize = True, .Location = New Point(66, 38)}
 
             Dim modes As New FlowLayoutPanel With {.Dock = DockStyle.Right, .FlowDirection = FlowDirection.LeftToRight, .WrapContents = False,
-                                                   .AutoSize = True, .Padding = New Padding(0, 14, 16, 0), .BackColor = Theme.HeaderBack}
+                                                   .AutoSize = True, .Padding = New Padding(0, 13, 16, 0), .BackColor = Theme.HeaderBack}
+            ' Moduswahl als ein zusammenhängender Umschalter (Segmente mit gemeinsamem Rahmen)
+            Dim seg As New FlowLayoutPanel With {.FlowDirection = FlowDirection.LeftToRight, .WrapContents = False, .AutoSize = True,
+                                                 .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Padding = New Padding(1),
+                                                 .Margin = New Padding(0), .BackColor = Theme.HeaderMuted}
             _btnModeLessons = MakeButton("Geführte Lektionen", Theme.Accent, Color.White)
-            _btnModeLessons.Width = 180
+            _btnModeLessons.Width = 176
+            _btnModeLessons.Margin = New Padding(0, 0, 1, 0)
             _btnModeFree = MakeButton("Freier Simulator", Theme.HeaderBack, Color.White)
             _btnModeFree.Width = 160
+            _btnModeFree.Margin = New Padding(0)
+            _btnModeLessons.AccessibleRole = AccessibleRole.RadioButton
+            _btnModeFree.AccessibleRole = AccessibleRole.RadioButton
             AddHandler _btnModeLessons.Click, Sub() SetMode(True)
             AddHandler _btnModeFree.Click, Sub() SetMode(False)
-            Dim btnInfo = MakeButton("Info", Theme.HeaderBack, Color.White)
+            seg.Controls.Add(_btnModeLessons)
+            seg.Controls.Add(_btnModeFree)
+            ' Info ist keine Moduswahl: deutlich abgesetzt, als schlichte Schaltfläche ohne Rahmen
+            Dim btnInfo = MakeButton("Info", Theme.HeaderBack, Theme.HeaderText)
             btnInfo.Width = 72
-            btnInfo.Margin = New Padding(14, 3, 3, 3)
-            btnInfo.FlatAppearance.BorderSize = 1
-            btnInfo.FlatAppearance.BorderColor = Theme.HeaderMuted
-            btnInfo.FlatAppearance.MouseOverBackColor = Theme.Blend(Theme.HeaderBack, Color.White, 0.15)
+            btnInfo.Height = 38
+            btnInfo.Margin = New Padding(24, 0, 0, 0)
             btnInfo.AccessibleName = "Info über NeuroSim: Quellen, Haftungsausschluss, Lizenz, Updates"
             _tips.SetToolTip(btnInfo, "Über NeuroSim: Entwickler, Quellen, Haftungsausschluss, Lizenz und Updates (F1)")
             AddHandler btnInfo.Click, Sub() ShowInfo()
-            modes.Controls.Add(_btnModeLessons)
-            modes.Controls.Add(_btnModeFree)
+            modes.Controls.Add(seg)
             modes.Controls.Add(btnInfo)
 
             header.Controls.Add(modes)
@@ -233,30 +251,35 @@ Namespace UI
                 _rightPages.Add(New FlowLayoutPanel With {.Dock = DockStyle.Fill, .FlowDirection = FlowDirection.TopDown, .WrapContents = False,
                                                          .AutoScroll = True, .Padding = New Padding(18, 0, 8, 16), .BackColor = Theme.Card, .Visible = (i = 0)})
             Next
-            Dim tabBar As New FlowLayoutPanel With {.Dock = DockStyle.Top, .Height = 52, .FlowDirection = FlowDirection.LeftToRight, .WrapContents = False,
-                                                    .Padding = New Padding(18, 12, 0, 0), .BackColor = Theme.Card}
-            Dim tabWidths = {50, 94, 88, 56}
+            ' Reiterleiste genau so breit wie der Inhalt darunter (gleiche linke und rechte Kante)
+            Dim tabHost As New Panel With {.Dock = DockStyle.Top, .Height = 52, .BackColor = Theme.Card}
+            Dim tabBar As New TableLayoutPanel With {.Location = New Point(18, 12), .Size = New Size(ControlWidth, 32), .ColumnCount = RightTabNames.Length,
+                                                     .RowCount = 1, .Margin = New Padding(0), .BackColor = Theme.AccentLight}
+            ' Spaltenbreiten im Verhältnis zur Textlänge
+            Dim tabWeights = {50.0F, 94.0F, 88.0F, 60.0F}
             For i = 0 To RightTabNames.Length - 1
                 Dim idx = i
+                tabBar.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, tabWeights(i)))
                 Dim tb = MakeButton(RightTabNames(i), Theme.AccentLight, Theme.AccentDark)
-                tb.Size = New Size(tabWidths(i), 32)
+                tb.Dock = DockStyle.Fill
                 tb.Font = Theme.FontSmallBold
                 tb.Margin = New Padding(0)
                 AddHandler tb.Click, Sub() ShowRightTab(idx)
                 _rightTabs.Add(tb)
-                tabBar.Controls.Add(tb)
+                tabBar.Controls.Add(tb, i, 0)
             Next
+            tabHost.Controls.Add(tabBar)
             Dim flow = _rightPages(Lesson.TabFilter)
 
             ' ---- Filter ----
             AddSection(flow, "Filter")
-            AddLabel(flow, "LowCut (FU)  ·  Zeitkonstante (TC)", "dämpft LANGSAME Wellen (z. B. Schwitzen)")
+            AddLabel(flow, "LowCut (FU)  ·  Zeitkonstante (TC)", "dämpft langsame Wellen (z. B. Schwitzen)")
             SetupCombo(_cmbLowCut, LowCutOptions.Select(Function(t) LowCutLabel(t)))
             flow.Controls.Add(_cmbLowCut)
             _tips.SetToolTip(_cmbLowCut, "Hochpass: Wellen, die langsamer als die Grenzfrequenz sind, werden abgeschwächt." & vbCrLf &
                                          "Kleinere Zeitkonstante = stärkerer Filter.  TC = 1 / (2 · π · FU)")
 
-            AddLabel(flow, "HiCut (FO)", "dämpft SCHNELLE Wellen (z. B. Muskel-EMG)")
+            AddLabel(flow, "HiCut (FO)", "dämpft schnelle Wellen (z. B. Muskel-EMG)")
             SetupCombo(_cmbHiCut, HighCutOptions.Select(Function(f) HighCutLabel(f)))
             flow.Controls.Add(_cmbHiCut)
             _tips.SetToolTip(_cmbHiCut, "Tiefpass: Wellen, die schneller als die Grenzfrequenz sind, werden abgeschwächt.")
@@ -367,7 +390,7 @@ Namespace UI
             For Each pg In _rightPages
                 right.Controls.Add(pg)
             Next
-            right.Controls.Add(tabBar)
+            right.Controls.Add(tabHost)
             right.Controls.Add(border)
             ShowRightTab(0)
             Return right
@@ -398,9 +421,22 @@ Namespace UI
             _lblTime.Margin = New Padding(10, 9, 0, 0)
             _lblTime.ForeColor = Theme.TextMuted
             _lblTime.Font = Theme.FontBold
-            Dim lblHint As New Label With {.AutoSize = True, .Margin = New Padding(24, 10, 0, 0), .ForeColor = Theme.TextMuted, .Font = Theme.FontSmall,
-                                           .Text = "Klick auf Kanalnamen: Frequenz-Ansicht  ·  Klick auf EKG-Kurve: EKG-Größe"}
+            ' Bedienhinweis zweizeilig; passt er nicht ganz hinein, wird er ausgeblendet statt abgeschnitten
+            ' (Bildschirmleser bekommen ihn über die Beschreibung der EEG-Kurven)
+            Const hintText As String = "Klick auf Kanalnamen: Frequenz-Ansicht" & vbLf & "Klick auf EKG-Kurve: EKG-Größe"
+            Dim lblHint As New Label With {.AutoSize = True, .Margin = New Padding(24, 2, 0, 0), .ForeColor = Theme.TextMuted, .Font = Theme.FontSmall,
+                                           .Text = hintText}
             bar.Controls.AddRange({btnBack, _btnPlay, btnFwd, _lblTime, lblHint})
+            Dim fitHint = Sub()
+                              Dim used = 0
+                              For Each c As Control In bar.Controls
+                                  If c IsNot lblHint Then used += c.Width + c.Margin.Horizontal
+                              Next
+                              Dim need = lblHint.PreferredSize.Width + lblHint.Margin.Horizontal
+                              lblHint.Visible = used + need <= bar.ClientSize.Width - bar.Padding.Horizontal
+                          End Sub
+            AddHandler bar.Resize, Sub() fitHint()
+            AddHandler _lblTime.SizeChanged, Sub() fitHint()
 
             ' EEG-Karte
             Dim eegCard As New Panel With {.Dock = DockStyle.Fill, .Padding = New Padding(1), .BackColor = Theme.Border}
@@ -423,14 +459,9 @@ Namespace UI
 
         ' ---------- kleine Bau-Helfer ----------
 
-        Private Shared Function MakeButton(text As String, back As Color, fore As Color) As Button
-            Dim b As New Button With {
-                .Text = text, .FlatStyle = FlatStyle.Flat, .BackColor = back, .ForeColor = fore,
-                .Font = Theme.FontBold, .Cursor = Cursors.Hand, .Height = 36, .Width = 120,
-                .UseVisualStyleBackColor = False, .TabStop = True}
-            b.FlatAppearance.BorderSize = 0
-            b.FlatAppearance.MouseOverBackColor = Theme.Blend(back, If(back.GetBrightness() > 0.6, Theme.Accent, Color.White), 0.15)
-            b.FlatAppearance.MouseDownBackColor = Theme.Blend(back, Color.Black, 0.12)
+        Private Shared Function MakeButton(text As String, back As Color, fore As Color) As FlatButton
+            Dim b As New FlatButton With {.Text = text, .Font = Theme.FontBold, .Height = 36, .Width = 120}
+            b.SetColors(back, fore)
             Return b
         End Function
 
@@ -495,15 +526,11 @@ Namespace UI
 
         Private Sub SetMode(lessonMode As Boolean)
             _lessonMode = lessonMode
-            _btnModeLessons.BackColor = If(lessonMode, Theme.Accent, Theme.HeaderBack)
-            _btnModeFree.BackColor = If(lessonMode, Theme.HeaderBack, Theme.Accent)
-            ' wie ein Umschalter: der nicht gewählte Modus bleibt als umrandete Schaltfläche erkennbar
-            For Each b In {_btnModeLessons, _btnModeFree}
-                b.FlatAppearance.BorderColor = Theme.HeaderMuted
-                b.FlatAppearance.BorderSize = If(b.BackColor = Theme.Accent, 0, 1)
-            Next
-            _btnModeLessons.FlatAppearance.MouseOverBackColor = Theme.Blend(_btnModeLessons.BackColor, Color.White, 0.15)
-            _btnModeFree.FlatAppearance.MouseOverBackColor = Theme.Blend(_btnModeFree.BackColor, Color.White, 0.15)
+            ' Segmente des Umschalters: das gewählte gefüllt, das andere dunkel im gemeinsamen Rahmen
+            _btnModeLessons.SetColors(If(lessonMode, Theme.Accent, Theme.HeaderBack), Color.White)
+            _btnModeFree.SetColors(If(lessonMode, Theme.HeaderBack, Theme.Accent), Color.White)
+            _btnModeLessons.AccessibleDescription = If(lessonMode, "ausgewählt", "")
+            _btnModeFree.AccessibleDescription = If(lessonMode, "", "ausgewählt")
             _navPanel.Visible = lessonMode
             _cmbLesson.Parent.Visible = lessonMode
             If lessonMode Then
@@ -534,6 +561,7 @@ Namespace UI
             _cmbLesson.SelectedIndex = index
             _suspend = False
             _lblProgress.Text = $"{index + 1} / {_lessons.Count}"
+            _lblProgress.AccessibleName = $"Lektion {index + 1} von {_lessons.Count}"
             _btnPrev.Enabled = index > 0
             _btnNext.Text = If(index < _lessons.Count - 1, "Weiter  ►", "Frei üben  ►")
             ApplySettingsToControls()
@@ -726,7 +754,7 @@ Namespace UI
             Dim blocks As New List(Of InfoBlock)
             If _lessonMode Then
                 Dim les = _lessons(_lessonIndex)
-                blocks.Add(InfoBlock.Subtitle($"{les.Chapter}  ·  Lektion {_lessonIndex + 1} von {_lessons.Count}"))
+                blocks.Add(InfoBlock.Subtitle(les.Chapter))
                 blocks.Add(InfoBlock.Title(les.Title))
                 blocks.AddRange(les.Blocks)
                 blocks.Add(InfoBlock.Divider())
@@ -827,20 +855,34 @@ Namespace UI
             End Using
         End Sub
 
-        ''' <summary>Nach dem ersten Anzeigen: Reste eines Updates wegräumen und still nach einer neuen Version suchen.</summary>
-        Protected Overrides Async Sub OnShown(e As EventArgs)
+        ''' <summary>Nach dem ersten Anzeigen: Reste eines Updates wegräumen, dann Startseite zeigen oder still nach einer neuen Version suchen.</summary>
+        Protected Overrides Sub OnShown(e As EventArgs)
             MyBase.OnShown(e)
             Updater.CleanupOldVersion()
-            If Updater.DisabledByAdministrator Then Return
-            If Not AppSettings.AutoUpdateAsked Then
-                ' einmalige Frage beim ersten Start: ohne Zustimmung keine Anfrage an GitHub
-                Dim answer = MessageBox.Show(Me,
-                    "Darf NeuroSim beim Start nach neuen Versionen suchen?" & vbCrLf & vbCrLf &
-                    "Dazu wird höchstens einmal am Tag eine Anfrage an GitHub gesendet. GitHub sieht dabei technisch bedingt die IP-Adresse dieses Rechners. Nutzungsdaten werden nicht übertragen." & vbCrLf & vbCrLf &
-                    "Sie können die Auswahl jederzeit im Info-Dialog (F1) ändern.",
-                    $"{AppInfo.Name} – Updates", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2)
-                AppSettings.AutoUpdateCheck = (answer = DialogResult.Yes)
+            If _start IsNot Nothing Then
+                ' Die Update-Suche wartet, bis auf der Startseite ein Modus gewählt ist:
+                ' dort wird sie erst ein- oder ausgeschaltet.
+                _start.FocusDefault()
+                Return
             End If
+            CheckForUpdatesOnStart()
+        End Sub
+
+        ''' <summary>Schließt die Startseite und öffnet den gewählten Modus.</summary>
+        Private Sub OnStartModeChosen(lessonMode As Boolean)
+            If _start Is Nothing Then Return
+            Dim page = _start
+            _start = Nothing
+            Controls.Remove(page)
+            page.Dispose()
+            SetMode(lessonMode)
+            CheckForUpdatesOnStart()
+        End Sub
+
+        ''' <summary>Sucht still nach einer neuen Version, wenn der Benutzer das eingeschaltet hat (höchstens einmal am Tag).</summary>
+        Private Async Sub CheckForUpdatesOnStart()
+            ' ohne Zustimmung (Startseite oder Info-Dialog) keine Anfrage an GitHub
+            If Updater.DisabledByAdministrator Then Return
             If Not AppSettings.AutoUpdateCheck OrElse Not AppSettings.UpdateCheckDueToday Then Return
             Try
                 Dim info = Await Updater.CheckAsync()
@@ -856,6 +898,8 @@ Namespace UI
                 ShowInfo()
                 Return True
             End If
+            ' Auf der Startseite wirken die Tastenkürzel des Simulators nicht
+            If _start IsNot Nothing Then Return MyBase.ProcessCmdKey(msg, keyData)
             ' P = Abspielen/Anhalten, Pfeiltasten und Bild auf/ab = blättern (wenn kein Eingabefeld aktiv ist)
             If TypeOf ActiveControl Is ComboBox OrElse TypeOf ActiveControl Is ImpedanceView Then Return MyBase.ProcessCmdKey(msg, keyData)
             ' + und − ändern die Amplitude (auch mit Umschalttaste, z. B. + auf englischer Tastatur)

@@ -132,7 +132,7 @@ Namespace Training
             New PartDescriptor With {.Part = SignalPart.Sweat, .Label = "Schwitzartefakt / Drift", .Color = Theme.ColDrift, .IsBrain = False, .TypicalHz = 0.25,
                 .Hint = "Sehr langsames Wandern der Grundlinie (unter 0,5 Hz)."},
             New PartDescriptor With {.Part = SignalPart.Emg, .Label = "Muskelartefakt (EMG)", .Color = Theme.ColFast, .IsBrain = False, .TypicalHz = 70,
-                .Hint = "Schnelles 'Gekritzel' durch Muskelanspannung, frontal und temporal."},
+                .Hint = "Schnelles »Gekritzel« durch Muskelanspannung, frontal und temporal."},
             New PartDescriptor With {.Part = SignalPart.Hum, .Label = "50-Hz-Einstreuung (Netz)", .Color = Theme.ColHum, .IsBrain = False, .TypicalHz = 50,
                 .Hint = "Netzstörung aus der Umgebung. Wie stark sie im EEG erscheint, hängt von den Impedanzen ab."},
             New PartDescriptor With {.Part = SignalPart.Ecg, .Label = "EKG-Artefakt", .Color = Theme.ColEcg, .IsBrain = False, .TypicalHz = 12,
