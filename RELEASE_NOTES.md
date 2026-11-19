@@ -1,18 +1,21 @@
-Zwei neue Kapitel: der Verstärker (Headbox) und die Verschaltungen.
+Neue Startseite, ein einheitlicher Stil und fachlich überarbeitete Texte.
 
 ## Neu
-- **Kapitel »Verstärker und Impedanz«:** Wie funktioniert die Headbox? Ein Kanal wird in seine beiden Eingänge und den Ausgang zerlegt. Man sieht, wie die Netzstörung an den Eingängen riesig ist und am Ausgang verschwindet – und warum sie bei ungleichen Impedanzen stehen bleibt.
-- **Kapitel »Verschaltungen«:** Längsreihe, Querreihe, Ohrreferenz, Vertexreferenz (Cz), Durchschnittsreferenz (AV) und Quellenableitung, jeweils mit Stärken und Schwächen. Kanalfolgen nach der DGKN-Empfehlung zu EEG-Ableiteprogrammen (2024).
-- **Verschaltung frei wählbar:** Im neuen Reiter »Verschaltung« lässt sich dasselbe EEG in jeder Verschaltung ansehen. Ein Kopfschema zeigt für den gewählten Kanal Eingang 1 und Eingang 2.
-- **Alle 21 Elektroden des 10/20-Systems:** Die Simulation rechnet jetzt das Potential jeder Elektrode. Auch das Kopfschema der Impedanzen zeigt alle 21 Elektroden.
+- **Startseite beim Programmstart:** Sie erklärt kurz, worum es in NeuroSim geht, und bietet »Geführte Lektionen« und »Freier Simulator« an. Wer sie nicht mehr sehen möchte, schaltet sie dort ab; im Info-Dialog (F1) lässt sie sich wieder einschalten.
+- **Versionshinweise im Update-Dialog:** Gibt es eine neue Version, zeigt NeuroSim, was sich geändert hat, auch über mehrere übersprungene Versionen hinweg.
 
 ## Geändert
-- 23 Lektionen in fünf Kapiteln, geordnet nach dem Signalweg: Grundlagen, Verstärker und Impedanz, Verschaltungen, Filter, Darstellung und Praxis.
-- Der Reiter »Einstellungen« heißt jetzt »Filter«.
-- Die Gelbrücke wirkt jetzt auf alle Kanäle, in denen F3 oder C3 vorkommen.
-- Das EKG-Artefakt hängt von der Verschaltung ab: klein in der Längsreihe, groß in der Ohrreferenz.
-- Die Amplitude wirkt nur noch auf die EEG-Kanäle. Das EKG hat eine eigene Größe: Klick auf die EKG-Kurve zeichnet sie größer, Rechtsklick kleiner.
-- Das Abspielen mit der Schreiblinie läuft flüssiger.
+- Die automatische Update-Suche wird jetzt auf der Startseite ein- oder ausgeschaltet (Standard: aus). Die eigene Frage beim ersten Start entfällt.
+- Einheitlicher Stil: Info- und Update-Dialog mit eigenen Reitern, Schaltern und flachen Schaltflächen; deutlicher Fokusrahmen bei Tastaturbedienung.
+- Lektionstexte betonen fett statt in Großbuchstaben; Anführungszeichen einheitlich »…«.
+- Impedanz: Allgemein gelten 1 bis 10 kΩ (DGKN). Für das EEG beim irreversiblen Hirnfunktionsausfall gelten eigene Vorgaben, die NeuroSim nicht behandelt.
+- Elektrodenstörungen: Das Spiegelbild in den Nachbarkanälen gibt es nur in bipolaren Reihen. Die Live-Warnung bei hoher Impedanz richtet sich nach der Verschaltung.
+- Durchschnittsreferenz: Augenblinzeln erscheint in den Stirnkanälen normal und erst dahinter umgekehrt. Eine schlechte Elektrode stört nur dann alle Kanäle, wenn sie im Durchschnitt steckt.
+- Quellenableitung: Ausgebreitete Aktivität wird stark abgeschwächt, aber nicht ganz entfernt. Neu erklärt ist, was die Kurve zeigt.
+- Lektionen nennen die Bedienelemente mit ihrem echten Namen; einzelne Aussagen sind an die gemessene Simulation angepasst.
+
+## Behoben
+- Der Text im Reiter »Über« des Info-Dialogs lässt sich scrollen und wird nicht mehr abgeschnitten.
 
 ## Installation
 `NeuroSim.exe` herunterladen und starten. Keine Installation nötig, läuft auf Windows 10 und 11 (64 Bit). Wer eine ältere Version benutzt, kann im Info-Dialog (F1) über „Jetzt nach Updates suchen“ aktualisieren.
