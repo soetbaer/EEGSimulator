@@ -449,7 +449,7 @@ Namespace Services
             End Try
         End Sub
 
-        ''' <summary>Beim Start automatisch nach Updates suchen (Standard: nein, bis der Benutzer zugestimmt hat).</summary>
+        ''' <summary>Beim Start automatisch nach Updates suchen (Standard: nein, bis der Benutzer es auf der Startseite oder im Info-Dialog einschaltet).</summary>
         Public Property AutoUpdateCheck As Boolean
             Get
                 Dim v As String = Nothing
@@ -463,11 +463,18 @@ Namespace Services
             End Set
         End Property
 
-        ''' <summary>Wurde der Benutzer schon gefragt, ob automatisch nach Updates gesucht werden darf?</summary>
-        Public ReadOnly Property AutoUpdateAsked As Boolean
+        ''' <summary>Startseite beim Programmstart zeigen (Standard: ja). Aus = NeuroSim öffnet direkt Lektion 1.</summary>
+        Public Property ShowStartPage As Boolean
             Get
-                Return Load().ContainsKey("AutoUpdateCheck")
+                Dim v As String = Nothing
+                If Load().TryGetValue("ShowStartPage", v) Then Return v <> "0"
+                Return True
             End Get
+            Set(value As Boolean)
+                Dim d = Load()
+                d("ShowStartPage") = If(value, "1", "0")
+                Save(d)
+            End Set
         End Property
 
         Private Function Today() As String

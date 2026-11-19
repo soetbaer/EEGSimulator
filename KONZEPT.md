@@ -16,7 +16,7 @@ Grundsatz: **Erst sehen, dann verstehen.** Keine Formeln im Vordergrund, sondern
 | Verschaltung | Dasselbe EEG aus verschiedenen Blickwinkeln | Berg von verschiedenen Seiten fotografiert; Kopfschema mit Eingang 1 und 2 |
 | Längs- und Querreihe | Nachbar gegen Nachbar; Phasenumkehr zeigt den Ort | Fadenkreuz aus zwei Richtungen |
 | Ohr- und Vertexreferenz | Alle gegen einen Bezug: wahre Größe, aber kein Bezug ist stumm | Alpha an der Stirn (Ohr), Gegenausschläge in allen Kanälen (Cz) |
-| Durchschnittsreferenz | Berechneter Bezug; große Potentiale verschieben ihn | Blinzeln erscheint umgekehrt in allen Kanälen |
+| Durchschnittsreferenz | Berechneter Bezug; große Potentiale verschieben ihn | Blinzeln erscheint umgekehrt in den Kanälen hinter der Stirn |
 | Quellenableitung | Elektrode gegen ihre Nachbarn: nur Örtliches bleibt | Spike nur noch in einem Kanal, Alpha stark verkleinert |
 | Filter allgemein | Ein Filter ist ein **Sieb** | Rote Schattierung = „wird gedämpft“, türkise Linie = „kommt durch“ |
 | LowCut (FU / TC) | Hält langsame Wellen zurück (Schwitzen, Drift) | Kurven „wandern“ ohne LowCut |
@@ -126,7 +126,7 @@ Die Texte und die Simulation wurden gegen öffentlich zugängliche Leitlinien un
 | Standard 70 µV/cm, untere Grenzfrequenz 0,5–1 Hz, obere 70 Hz; 50-Hz-Filter bei Standard-Ableitung nicht routinemäßig (verdeckt Elektroden- und Kabeldefekte); Impedanz ≤ 5 kΩ, in Ausnahmen bis 10 kΩ, möglichst gleichmäßig; Filter und Verschaltung bei digitalen Geräten nachträglich änderbar | Baier, Kap. B-1.2 in Bischoff & Straube (Hrsg.), Leitlinien Klinische Neurophysiologie, Kohlhammer 2014 |
 | Alpha 8–13 Hz, üblicherweise um 30 µV; Beta über 13 bis 40 Hz, meist 15–25 Hz, frontozentral; Theta 4–7 Hz | Rosenow, Kap. B-1.3, ebenda |
 | Hauptkomponente epilepsietypischer Potentiale in der Regel negativ | Kap. B-1 (Befundung), ebenda |
-| Widerstände unter 100 Ω nicht zulässig (Abnahme der Potentialamplituden); Übergangswiderstände 1–10 kΩ | Kap. A-1 (EEG beim irreversiblen Hirnfunktionsausfall), ebenda |
+| Hinweis, dass für das EEG beim irreversiblen Hirnfunktionsausfall eigene Vorgaben gelten (dort u. a. Widerstände unter 100 Ω nicht zulässig); diese Vorgaben werden in der Anwendung bewusst nicht behandelt, allgemein gilt 1–10 kΩ | Kap. A-1 (EEG beim irreversiblen Hirnfunktionsausfall), ebenda |
 | Hautvorbereitung (entfetten, abrasive Paste sparsam, Kontaktgel), auf kleine Widerstandsdifferenz achten; typische 50-Hz-Störquellen | Merkblatt „Artefakte bei evozierten Potentialen“ (H. Krase) |
 | LowCut höchstens 1 Hz (TC mindestens 0,16 s), HiCut mindestens 70 Hz; Netzfilter nur, wenn andere Maßnahmen versagen, weil er Spikes verändern kann | ACNS Guideline 1: Minimum Technical Requirements for Performing Clinical EEG (2016) |
 | Spike: 20 bis unter 70 ms; Frequenzbänder | IFCN-Glossar (Kane et al., Clin Neurophysiol Pract 2017) |

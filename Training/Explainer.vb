@@ -57,7 +57,7 @@ Namespace Training
 
             ' ---------- LowCut ----------
             If s.LowCutTc <= 0 Then
-                list.Add(InfoBlock.Para("LowCut (FU) ist AUS: Auch extrem langsame Schwankungen werden voll angezeigt."))
+                list.Add(InfoBlock.Para("LowCut (FU) ist **aus**: Auch extrem langsame Schwankungen werden voll angezeigt."))
                 If has(SignalPart.Sweat) Then
                     list.Add(InfoBlock.Warning("Ohne LowCut wandert die Grundlinie durch das Schwitzartefakt weit nach oben und unten – die Kurven laufen ineinander."))
                 End If
@@ -80,7 +80,7 @@ Namespace Training
 
             ' ---------- HiCut ----------
             If s.HighCutHz <= 0 Then
-                list.Add(InfoBlock.Para("HiCut (FO) ist AUS: Auch sehr schnelle Anteile werden voll angezeigt."))
+                list.Add(InfoBlock.Para("HiCut (FO) ist **aus**: Auch sehr schnelle Anteile werden voll angezeigt."))
                 If has(SignalPart.Emg) Then list.Add(InfoBlock.Tip("Muskelartefakte sind jetzt ungefiltert in voller Stärke sichtbar."))
             Else
                 list.Add(InfoBlock.Para($"HiCut {Hz(s.HighCutHz)} Hz: Wellen, die schneller sind als etwa {Hz(s.HighCutHz)} Wellen pro Sekunde, werden abgeschwächt – je schneller, desto stärker."))
@@ -119,7 +119,21 @@ Namespace Training
             Dim zLabel = Function(i As Integer) $"{Head.Names(i)} ({z(i).ToString("0", De)} kΩ)"
 
             If bad.Count > 0 Then
-                list.Add(InfoBlock.Warning($"Impedanz zu hoch: {String.Join(", ", bad.Select(zLabel))}. Betroffen sind alle Kanäle mit dieser Elektrode: unruhige Grundlinie und plötzliche Sprünge (Elektroden-Pops), in Nachbarkanälen spiegelbildlich. Das lässt sich nicht wegfiltern – Elektrode neu setzen."))
+                ' Wo die Störung einer einzelnen Elektrode erscheint, hängt von der Verschaltung ab
+                Dim spread As String
+                Select Case montage.Kind
+                    Case MontageKind.Bipolar
+                        spread = "Betroffen sind die Kanäle mit dieser Elektrode, in den beiden Nachbarkanälen einer Kette spiegelbildlich (einmal ist sie Eingang 2, einmal Eingang 1)."
+                    Case MontageKind.Reference
+                        spread = "Betroffen ist der Kanal dieser Elektrode, ohne Spiegelbild. Ist es die Bezugselektrode, erscheint die Störung umgekehrt in allen Kanälen dieses Bezugs."
+                    Case MontageKind.Average
+                        spread = "Die Störung erscheint voll im Kanal dieser Elektrode. Geht sie in den Durchschnitt ein, taucht die Störung außerdem klein und umgekehrt in allen anderen Kanälen auf."
+                    Case MontageKind.Source
+                        spread = "Die Störung erscheint voll im Kanal dieser Elektrode und kleiner, umgekehrt in den Kanälen ihrer Nachbarelektroden."
+                    Case Else
+                        spread = "Betroffen sind die Kanäle mit dieser Elektrode."
+                End Select
+                list.Add(InfoBlock.Warning($"Impedanz zu hoch: {String.Join(", ", bad.Select(zLabel))}. Folgen: unruhige Grundlinie und plötzliche Sprünge (Elektroden-Pops). {spread} Das lässt sich nicht wegfiltern – Elektrode neu setzen."))
                 Dim zMax = bad.Max(Function(i) z(i))
                 Dim lossPct = zMax / (100000.0 + zMax) * 100
                 Dim thermalUv = Math.Sqrt(4 * 1.380649E-23 * 310 * zMax * 1000 * 70) * 1000000.0
@@ -144,11 +158,16 @@ Namespace Training
                                $"Die beiden Elektroden dieses Kanals unterscheiden sich um {diffText} kΩ",
                                $"Die Impedanz von {Head.Names(worst.Input1)} weicht um {diffText} kΩ vom Mittelwert ihres Bezugs ab")
                 If humUv < 6 Then
-                    list.Add(InfoBlock.Good($"Netzeinstreuung ist vorhanden, aber kaum sichtbar: Die Impedanzen sind niedrig und fast gleich (größter Unterschied in einem Kanal: {diffText} kΩ). Der Verstärker kann die Störung unterdrücken."))
+                    If bad.Count = 0 Then
+                        list.Add(InfoBlock.Good($"Netzeinstreuung ist vorhanden, aber kaum sichtbar: Die Impedanzen sind niedrig und fast gleich (größter Unterschied in einem Kanal: {diffText} kΩ). Der Verstärker kann die Störung unterdrücken."))
+                    Else
+                        ' gleich hohe Impedanzen: der Brumm hebt sich auf, die Elektroden bleiben trotzdem schlecht
+                        list.Add(InfoBlock.Para($"Netzbrumm ist kaum sichtbar, weil die Elektroden innerhalb der Kanäle fast gleiche Impedanzen haben (größter Unterschied in einem Kanal: {diffText} kΩ). Die zu hohen Werte bleiben trotzdem ein Problem: Unruhe und Pops lassen sich so nicht beheben."))
+                    End If
                 ElseIf s.Notch Then
                     list.Add(InfoBlock.Good($"Der Netzbrumm (am stärksten in {chName}) ist herausgefiltert. Die Ursache bleibt aber bestehen: {cause}."))
                 Else
-                    list.Add(InfoBlock.Tip($"Netzbrumm sichtbar (dicke, 'pelzige' Kurve), am stärksten in {chName}: {cause}. Erst die Elektrode verbessern, dann ggf. den 50-Hz-Filter einschalten."))
+                    list.Add(InfoBlock.Tip($"Netzbrumm sichtbar (dicke, »pelzige« Kurve), am stärksten in {chName}: {cause}. Erst die Elektrode verbessern, dann ggf. den 50-Hz-Filter einschalten."))
                 End If
             End If
 
@@ -239,7 +258,7 @@ Namespace Training
                     End If
                 Case Montages.Average
                     If has(SignalPart.Blinks) Then
-                        list.Add(InfoBlock.Warning("Durchschnittsreferenz: Das große Augenblinzeln steckt über die frontalen Elektroden im Durchschnitt und erscheint dadurch umgekehrt in ALLEN Kanälen, sogar okzipital."))
+                        list.Add(InfoBlock.Warning("Durchschnittsreferenz: Das große Augenblinzeln steckt über die frontalen Elektroden (F7, F3, Fz, F4, F8) im Durchschnitt. In allen Kanälen hinter der Stirn erscheint es dadurch umgekehrt, sogar okzipital."))
                     End If
                     If focus Then
                         list.Add(InfoBlock.Tip("Durchschnittsreferenz: Der Herd ist in C3-AV am größten. Weil er den Durchschnitt mitverschiebt, erscheint in den Kanälen abseits des Herdes ein kleiner Ausschlag in Gegenrichtung."))

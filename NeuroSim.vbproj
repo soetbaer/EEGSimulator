@@ -18,7 +18,7 @@
     <Authors>F. Soetbeer</Authors>
     <Company>F. Soetbeer</Company>
     <Copyright>Copyright © 2026 F. Soetbeer. Lizenz: GPL-3.0-or-later</Copyright>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <ApplicationIcon>Assets/NeuroSim.ico</ApplicationIcon>
     <!-- erlaubt das Bauen auch auf Nicht-Windows-Systemen (z. B. CI); auf Windows ohne Wirkung -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
