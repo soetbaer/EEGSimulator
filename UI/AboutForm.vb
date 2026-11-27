@@ -132,25 +132,28 @@ Namespace UI
                                             .LinkBehavior = LinkBehavior.HoverUnderline}
             AddHandler link.LinkClicked, Sub() OpenUrl(AppInfo.RepoUrl)
 
-            ' freiwillige Unterstützung: öffnet nur den Browser, die Anwendung selbst sendet nichts
-            Dim support As New LinkLabel With {.Text = "NeuroSim unterstützen (Ko-fi, freiwillig)", .AutoSize = True, .Location = New Point(22, 342),
-                                               .LinkColor = Theme.AccentDark, .ActiveLinkColor = Theme.Accent, .Font = Theme.FontBase,
-                                               .LinkBehavior = LinkBehavior.HoverUnderline}
-            AddHandler support.LinkClicked, Sub() OpenUrl(AppInfo.SupportUrl)
+            ' freiwillige Unterstützung als gut sichtbare Schaltfläche: öffnet nur den Browser, die Anwendung selbst sendet nichts
+            Dim support = FlatButton.Primary("♥  NeuroSim unterstützen")
+            support.Size = New Size(240, 36)
+            support.Location = New Point(24, 344)
+            support.AccessibleName = $"{AppInfo.Name} über Ko-fi unterstützen (freiwillig, öffnet den Browser)"
+            AddHandler support.Click, Sub() OpenUrl(AppInfo.SupportUrl)
+            Dim supportHint As New Label With {.Text = "Freiwillig über Ko-fi. NeuroSim bleibt kostenlos.", .Font = Theme.FontSmall, .ForeColor = Theme.TextMuted,
+                                               .AutoSize = True, .Location = New Point(276, 354)}
 
             ' ---- Einstellungen: Startseite und Updates ----
-            Dim line As New Panel With {.Location = New Point(24, 380), .Size = New Size(400, 1), .BackColor = Theme.Border}
-            Dim upd As New Label With {.Text = "Einstellungen", .Font = Theme.FontHeading, .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(22, 392)}
+            Dim line As New Panel With {.Location = New Point(24, 396), .Size = New Size(400, 1), .BackColor = Theme.Border}
+            Dim upd As New Label With {.Text = "Einstellungen", .Font = Theme.FontHeading, .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(22, 408)}
 
             ' Schalter wie auf der Startseite und im Hauptfenster
             _tglStart.Text = "Startseite beim Start anzeigen"
-            _tglStart.Location = New Point(20, 424)
+            _tglStart.Location = New Point(20, 440)
             _tglStart.Size = New Size(400, 32)
             _tglStart.Checked = AppSettings.ShowStartPage
             AddHandler _tglStart.CheckedChanged, Sub() AppSettings.ShowStartPage = _tglStart.Checked
 
             _tglAuto.Text = "Beim Start nach Updates suchen"
-            _tglAuto.Location = New Point(20, 458)
+            _tglAuto.Location = New Point(20, 474)
             _tglAuto.Size = New Size(400, 32)
             Dim locked = Updater.DisabledByAdministrator
             _tglAuto.Checked = AppSettings.AutoUpdateCheck AndAlso Not locked
@@ -158,11 +161,11 @@ Namespace UI
             AddHandler _tglAuto.CheckedChanged, Sub() AppSettings.AutoUpdateCheck = _tglAuto.Checked
 
             _btnCheck.Size = New Size(220, 36)
-            _btnCheck.Location = New Point(24, 502)
+            _btnCheck.Location = New Point(24, 518)
             AddHandler _btnCheck.Click, AddressOf OnCheckClicked
 
             _lblStatus.AutoSize = False
-            _lblStatus.Location = New Point(260, 498)
+            _lblStatus.Location = New Point(260, 514)
             _lblStatus.Size = New Size(300, 44)
             _lblStatus.TextAlign = ContentAlignment.MiddleLeft
             _lblStatus.ForeColor = Theme.TextMuted
@@ -182,7 +185,7 @@ Namespace UI
             AddHandler page.Resize, Sub() fit()
             AddHandler page.Layout, Sub() fit()
 
-            page.Controls.AddRange({logo, name, tag, ver, about, link, support, line, upd, _tglStart, _tglAuto, _btnCheck, _lblStatus})
+            page.Controls.AddRange({logo, name, tag, ver, about, link, support, supportHint, line, upd, _tglStart, _tglAuto, _btnCheck, _lblStatus})
             Return page
         End Function
 
