@@ -20,6 +20,7 @@ Namespace Services
         Public Const RepoName As String = "EEGSimulator"
         Public Const RepoUrl As String = "https://github.com/" & RepoOwner & "/" & RepoName
         Public Const ReleasesUrl As String = RepoUrl & "/releases"
+        Public Const SupportUrl As String = "https://ko-fi.com/soetbaer"
 
         Public ReadOnly Property Version As Version
             Get
