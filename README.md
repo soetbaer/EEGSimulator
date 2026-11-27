@@ -104,6 +104,14 @@ Bei jedem Push baut GitHub Actions (`.github/workflows/ci.yml`) die Anwendung un
 
 Die Update-Funktion liest die Tag-Nummer des neuesten Releases, vergleicht sie mit der Programmversion und lädt `NeuroSim.exe` aus diesem Release. Die Datei `NeuroSim.exe.sha256` ist freiwillig; liegt sie bei, wird die Prüfsumme der heruntergeladenen EXE damit verglichen.
 
+## NeuroSim unterstützen
+
+NeuroSim ist kostenlos und bleibt es auch. Ich entwickle es in meiner Freizeit. Wenn dir NeuroSim in der Ausbildung oder im Arbeitsalltag hilft und du die Weiterentwicklung unterstützen möchtest, freue ich mich über einen Kaffee auf Ko-fi. Das ist natürlich völlig freiwillig.
+
+<a href="https://ko-fi.com/soetbaer"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="NeuroSim auf Ko-fi unterstützen"></a>
+
+Genauso helfen Rückmeldungen, Fehlerberichte und Ideen unter [Issues](https://github.com/soetbaer/EEGSimulator/issues).
+
 ## Lizenz
 
 Copyright © 2026 F. Soetbeer
