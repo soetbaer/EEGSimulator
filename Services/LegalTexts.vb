@@ -19,7 +19,10 @@ Namespace Services
                     $"Copyright © {AppInfo.CopyrightYear} {AppInfo.Developer}",
                     "",
                     $"{AppInfo.Name} ist freie Software und kostenlos. Jeder darf sie nutzen, weitergeben und verändern – unter den Bedingungen der {AppInfo.LicenseName}. Der Quellcode ist öffentlich:",
-                    AppInfo.RepoUrl})
+                    AppInfo.RepoUrl,
+                    "",
+                    $"Wer die Weiterentwicklung unterstützen möchte, kann das über Ko-fi tun – ganz freiwillig. {AppInfo.Name} bleibt in jedem Fall kostenlos und voll nutzbar:",
+                    AppInfo.SupportUrl})
             End Get
         End Property
 

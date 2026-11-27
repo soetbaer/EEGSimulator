@@ -32,7 +32,7 @@ Namespace UI
 
         Private ReadOnly _card As New Panel()
         Private ReadOnly _flow As New FlowLayoutPanel()
-        Private ReadOnly _footer As New Label()
+        Private ReadOnly _footer As New LinkLabel()
         Private ReadOnly _tglUpdate As New ToggleSwitch()
         Private ReadOnly _tglShow As New ToggleSwitch()
         Private ReadOnly _tips As New ToolTip() With {.AutoPopDelay = 15000, .InitialDelay = 400}
@@ -127,8 +127,16 @@ Namespace UI
             _card.Controls.Add(_flow)
             Controls.Add(_card)
 
-            ' ---- Fußzeile unten links: Version und Hinweis ----
-            _footer.Text = $"{AppInfo.Name} {AppInfo.VersionText}  ·  © {AppInfo.CopyrightYear} {AppInfo.Developer}  ·  Nur für die Aus- und Weiterbildung, kein Medizinprodukt"
+            ' ---- Fußzeile unten links: Version, Hinweis und dezenter, freiwilliger Ko-fi-Link (öffnet nur den Browser) ----
+            Const supportText As String = "Unterstützen"
+            _footer.Text = $"{AppInfo.Name} {AppInfo.VersionText}  ·  © {AppInfo.CopyrightYear} {AppInfo.Developer}  ·  Nur für die Aus- und Weiterbildung, kein Medizinprodukt  ·  {supportText}"
+            _footer.LinkArea = New LinkArea(_footer.Text.Length - supportText.Length, supportText.Length)
+            _footer.LinkColor = Theme.AccentDark
+            _footer.ActiveLinkColor = Theme.Accent
+            _footer.LinkBehavior = LinkBehavior.HoverUnderline
+            _footer.AccessibleName = $"{AppInfo.Name} unterstützen (Ko-fi, freiwillig)"
+            AddHandler _footer.LinkClicked, Sub() AboutForm.OpenUrl(AppInfo.SupportUrl)
+            _tips.SetToolTip(_footer, $"Freiwillig: {AppInfo.Name} über Ko-fi unterstützen. Öffnet {AppInfo.SupportUrl} im Browser.")
             _footer.Font = Theme.FontSmall
             _footer.ForeColor = Theme.TextMuted
             _footer.BackColor = Theme.AppBack
